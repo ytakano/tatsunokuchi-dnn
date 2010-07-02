@@ -1,0 +1,21 @@
+# for debug
+#CXXFLAGS += -Wall -O0 -g
+
+# for release
+CXXFLAGS += -Wall -O3 -funroll-loops
+
+LDFLAGS += -lcv -lcxcore -lhighgui -lboost_system -lboost_filesystem -ltcmalloc
+
+SRC[] =
+	dnn_surf
+	kmeans
+	surf
+
+.PHONY: clean dnn_surf
+
+dnn_surf: $(CXXProgram dnn_surf, $(SRC))
+
+clean:
+        rm -f *~ *.a *.o dnn_surf
+
+.DEFAULT: dnn_surf
