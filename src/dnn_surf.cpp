@@ -23,8 +23,6 @@ struct option longopts[] = {
         {NULL,          0,                 NULL, 0}
 };
 
-char type[4] = {'i', 'm', 'g', 0};
-
 bool read_conf(dnn::kmeans &km, char *conf);
 void create_conf(std::vector<char*> &files, std::ostream &out);
 void create_hist(dnn::kmeans &km, const std::string &file, const char *dir);
@@ -35,9 +33,9 @@ usage(char *progname)
 {
         std::cout << progname << " --create-conf img1.jpg img2.png\n"
                   << progname << " -c img1.jpg img2.png\n"
-                  << "    the config file createdy by using "
-                  << "img1.jpg and img2.jpg are outputted into\n"
-                  << "    the standard output\n"
+                  << "    the config file created by using "
+                  << "img1.jpg and img2.jpg is outputted to the\n"
+                  << "    standard output\n"
                   << std::endl;
 
         std::cout << progname
@@ -49,15 +47,16 @@ usage(char *progname)
         std::cout << progname << " --read-conf surf.conf\n"
                   << progname << " -r surf.conf\n"
                   << "    read file names from the standard input and create "
-                  << "histgram files which\n"
-                  << "    would be outputted into the same directory of it\n"
+                  << "histgram files\n"
+                  << "    the histgram files are outputted on the same "
+                  << "directory of it\n"
                   << "    the config file must be specified to create histgrams"
                   << "\n"
                   << std::endl;
 
         std::cout << progname << " --read-conf surf.conf --dir /hist/to/sotre\n"
                   << progname << " -r surf.conf -d /hist/to/store\n"
-                  << "    histgram files are created into the /hist/to/store"
+                  << "    histgram files are created on the /hist/to/store"
                   << "directory\n"
                   << std::endl;
 
@@ -138,7 +137,7 @@ main(int argc, char *argv[])
                 return -1;
         }
 
-        for (;;) {
+        while (std::cin) {
                 std::string str;
                 std::cin >> str;
 
@@ -172,7 +171,7 @@ create_hist(dnn::kmeans &km, const std::string &file, const char *dir)
                 return;
 
 
-        dnn::kmeans::histgram hist = km.get_hist(feat);
+        dnn::histgram hist = km.get_hist(feat);
 
         fs::path path = get_hist_path(file, dir);
 
@@ -184,12 +183,11 @@ create_hist(dnn::kmeans &km, const std::string &file, const char *dir)
         if (! ofile)
                 return;
 
-        ofile.write(type, sizeof(type));
+        ofile << hist;
 
-        ofile << hist.m_dim;
+        ofile.close();
 
-        for (uint32_t i = 0; i < hist.m_dim; i++)
-                ofile.write((char*)&hist.m_hist[i], sizeof(hist.m_hist[0]));
+        std::cout << path.string() << std::endl;
 }
 
 bool
@@ -200,12 +198,12 @@ read_conf(dnn::kmeans &km, char *conf)
         if (! ifile)
                 return false;
 
-        std::cout << "loading the config file of \"" << conf << "\"..."
+        std::cout << "building the k-means tree from \"" << conf << "\"..."
                   << std::endl;
 
         ifile >> km;
 
-        std::cout << "finished loading the config file" << std::endl;
+        std::cout << "finished building" << std::endl;
 
         return true;
 }

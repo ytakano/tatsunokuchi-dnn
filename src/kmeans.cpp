@@ -180,7 +180,7 @@ kmeans::build_ptree(ptree &pt, kmnode_t node, std::string prefix) const
         build_ptree(pt, node->m_right, pre);
 }
 
-kmeans::histgram
+histgram
 kmeans::get_hist(features_t features)
 {
         histgram hist;
@@ -188,7 +188,7 @@ kmeans::get_hist(features_t features)
         hist.m_dim  = 1 << m_depth;
         hist.m_hist = float_arr(new float[hist.m_dim]);
 
-        for (int k = 0; k < hist.m_dim; k++)
+        for (uint32_t k = 0; k < hist.m_dim; k++)
                 hist.m_hist[k] = 0.0f;
 
         if (m_root.get() == NULL)
@@ -204,7 +204,7 @@ kmeans::get_hist(features_t features)
         }
 
         float m = (float)n;
-        for (int k = 0; k < hist.m_dim; k++)
+        for (uint32_t k = 0; k < hist.m_dim; k++)
                 hist.m_hist[k] /= m;
 
         return hist;

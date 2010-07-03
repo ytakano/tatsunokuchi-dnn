@@ -2,6 +2,7 @@
 #define KMEANS_HPP
 
 #include "feature.hpp"
+#include "hist.hpp"
 
 #include <stdint.h>
 
@@ -17,12 +18,7 @@ namespace dnn {
 
 class kmeans {
 public:
-        typedef boost::shared_array<float>      float_arr;
-
-        struct histgram {
-                float_arr       m_hist;
-                uint32_t         m_dim;
-        };
+        typedef boost::shared_array<float> float_arr;
 
         kmeans() : m_dim(1), m_depth(10) { }
 
