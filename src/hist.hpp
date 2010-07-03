@@ -13,7 +13,10 @@ struct histgram {
         uint32_t        m_dim;
 };
 
-std::ostream& operator<< (std::ostream &out, const histgram &km);
+class error_read_hist { };
+
+std::ostream& operator<< (std::ostream &out, const histgram &hist);
+std::istream& operator>> (std::istream &in, histgram &hist);
 
 }
 

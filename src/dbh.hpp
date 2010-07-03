@@ -4,6 +4,7 @@
 #include "hist.hpp"
 
 #include <map>
+#include <set>
 #include <vector>
 
 namespace dnn {
@@ -17,6 +18,9 @@ public:
         void    add_hist(float_arr hist) { m_hist.push_back(hist); }
         void    set_dim(int dim) { m_dim = dim; }
 
+        bool    build_pivot();
+        void    get_hash(uint32_t *hash, float_arr hist);
+
         dbh() : m_num_table(5), m_dim(1) { }
 
 private:
@@ -28,7 +32,7 @@ private:
                 } m_keys;
         };
 
-        class pivot {
+        struct pivot {
                 float_arr       m_x1;
                 float_arr       m_x2;
                 float           m_median;
@@ -36,12 +40,12 @@ private:
 
         class error_gen_pair { };
 
-        bool            gen_pivot();
-        rnd_pair        gen_pair();  //throw error_gen_pair
+        // throw error_gen_pair
+        rnd_pair        gen_pair(std::set<uint32_t> &pair_set);
         float           get_dist(float_arr x, float_arr x1, float_arr x2);
 
         std::vector<float_arr>  m_hist;
-        std::map<uint32_t, pivot>       m_pivot;
+        std::vector<pivot>      m_pivot;
         int     m_num_table;
         int     m_dim;
 };

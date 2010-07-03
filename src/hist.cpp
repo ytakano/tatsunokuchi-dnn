@@ -18,4 +18,37 @@ operator<< (std::ostream &out, const histgram &hist)
         return out;
 }
 
+std::istream&
+operator>> (std::istream &in, histgram &hist)
+{
+        std::string h;
+        size_t len = strlen(head);
+        size_t i;
+
+        for (i = 0; i < len && in; i++) {
+                char c;
+                in.read(&c, sizeof(c));
+                h.push_back(c);
+        }
+
+        if (i < len || ! in)
+                throw error_read_hist();
+
+        in.read((char*)&hist.m_dim, sizeof(hist.m_dim));
+
+        hist.m_hist = histgram::float_arr(new float[hist.m_dim]);
+
+        uint32_t j;
+        for (j = 0; j < hist.m_dim && in; j++) {
+                float val;
+                in.read((char*)&val, sizeof(val));
+                hist.m_hist[j] = val;
+        }
+
+        if (j < hist.m_dim)
+                throw error_read_hist();
+
+        return in;
+}
+
 }
