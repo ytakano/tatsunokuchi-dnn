@@ -24,11 +24,11 @@ struct option longopts[] = {
 };
 
 bool read_conf(dnn::kmeans &km, char *conf);
-void create_conf(std::vector<char*> &files, std::ostream &out);
+static void create_conf(std::vector<char*> &files, std::ostream &out);
 void create_hist(dnn::kmeans &km, const std::string &file, const char *dir);
 
 
-void
+static void
 usage(char *progname)
 {
         std::cout << progname << " --create-conf img1.jpg img2.png\n"

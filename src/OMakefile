@@ -9,15 +9,23 @@ LDFLAGS += -lcv -lcxcore -lhighgui -lboost_system -lboost_filesystem -ltcmalloc
 SRC[] =
 	dbh
 	hist
-	dnn_surf
 	kmeans
 	surf
 
-.PHONY: clean dnn_surf
+SRC_SURF[] =
+	$(SRC)
+	dnn_surf
 
-dnn_surf: $(CXXProgram dnn_surf, $(SRC))
+SRC_DBH[] =
+	$(SRC)
+	dnn_dbh
+
+.PHONY: clean static dnn_surf dnn_dbh
+
+dnn_surf: $(CXXProgram dnn_surf, $(SRC_SURF))
+dnn_dbh: $(CXXProgram dnn_dbh, $(SRC_DBH))
 
 clean:
-        rm -f *~ *.a *.o dnn_surf
+        rm -f *~ *.a *.o dnn_surf dnn_dbh
 
-.DEFAULT: dnn_surf
+.DEFAULT: static dnn_surf dnn_dbh

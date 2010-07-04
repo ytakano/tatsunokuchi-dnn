@@ -10,18 +10,20 @@
 namespace dnn {
 
 class dbh {
-        static const int bits;
-
 public:
         typedef boost::shared_array<float> float_arr;
 
+        dbh() : m_num_table(5), m_dim(1) { }
+
         void    add_hist(float_arr hist) { m_hist.push_back(hist); }
         void    set_dim(int dim) { m_dim = dim; }
+        void    set_bits(unsigned int bits) { m_bits = bits < 32 ? bits : 32; }
 
         bool    build_pivot();
         void    get_hash(uint32_t *hash, float_arr hist);
 
-        dbh() : m_num_table(5), m_dim(1) { }
+        friend std::ostream& operator<< (std::ostream &out, const dbh &d);
+        friend std::istream& operator>> (std::istream &in, dbh &d);
 
 private:
         union rnd_pair {
@@ -44,8 +46,12 @@ private:
         rnd_pair        gen_pair(std::set<uint32_t> &pair_set);
         float           get_dist(float_arr x, float_arr x1, float_arr x2);
 
+        void    print_json(std::ostream &out) const;
+        void    load_json(std::istream &in);
+
         std::vector<float_arr>  m_hist;
         std::vector<pivot>      m_pivot;
+        unsigned int    m_bits;
         int     m_num_table;
         int     m_dim;
 };

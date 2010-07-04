@@ -7,10 +7,87 @@
 #include <algorithm>
 
 #include <boost/foreach.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 namespace dnn {
 
-const int dbh::bits = 32;
+using boost::property_tree::ptree;
+
+std::ostream&
+operator<< (std::ostream &out, const dbh &d)
+{
+        d.print_json(out);
+
+        return out;
+}
+
+std::istream&
+operator>> (std::istream &in, dbh &d)
+{
+
+        return in;
+}
+
+/* {
+ *   "dim" : 1024,
+ *   "bits" : 32,
+ *   "num_table" : 5,
+ *   "pivots" : [
+ *     {
+ *       "median" : 0.5,
+ *       "x1" : [...],
+ *       "x2" : [...]
+ *     },
+ *     {
+ *       "median" : 0.5,
+ *       "x1" : [...],
+ *       "x2" : [...]
+ *     }
+ *   ]
+ * }
+ */
+
+void
+dbh::print_json(std::ostream &out) const
+{
+        ptree pt;
+
+        if (m_pivot.size() < m_bits * m_num_table) {
+                write_json(out, pt);
+                return;
+        }
+
+        pt.add("dim", m_dim);
+        pt.add("bits", m_bits);
+        pt.add("num_table", m_num_table);
+
+        ptree child;
+        BOOST_FOREACH(const pivot &pv, m_pivot) {
+                ptree p;
+                ptree x1, x2;
+
+                for (int i = 0; i < m_dim; i++) {
+                        std::ostringstream s1, s2;
+
+                        s1 << pv.m_x1[i];
+                        s2 << pv.m_x2[i];
+
+                        x1.push_back(ptree::value_type("", ptree(s1.str())));
+                        x2.push_back(ptree::value_type("", ptree(s2.str())));
+                }
+
+                p.add("median", pv.m_median);
+                p.push_back(ptree::value_type("x1", x1));
+                p.push_back(ptree::value_type("x2", x2));
+
+                child.push_back(ptree::value_type("", p));
+        }
+
+        pt.add_child("pivots", child);
+
+        write_json(out, pt);
+}
 
 dbh::rnd_pair
 dbh::gen_pair(std::set<uint32_t> &pair_set)
@@ -52,7 +129,7 @@ dbh::build_pivot()
         m_pivot.clear();
 
         for (int i = 0; i < m_num_table; i++) {
-                for (int j = 0; j < bits; i++) {
+                for (unsigned int j = 0; j < m_bits; i++) {
                         rnd_pair pair;
                         pivot    pv;
 
@@ -117,8 +194,8 @@ dbh::get_hash(uint32_t *hash, float_arr hist)
 {
         for (int i = 0; i < m_num_table; i++) {
                 uint32_t h = 0;
-                for (int j = 0; j < bits; j++) {
-                        pivot pv = m_pivot[i * bits + j];
+                for (unsigned int j = 0; j < m_bits; j++) {
+                        pivot pv = m_pivot[i * m_bits + j];
                         float d  = get_dist(hist, pv.m_x1, pv.m_x2);
 
                         if (d < pv.m_median) {
