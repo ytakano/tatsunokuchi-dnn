@@ -7,6 +7,7 @@ CXXFLAGS += -Wall -O3 -funroll-loops
 LDFLAGS += -lcv -lcxcore -lhighgui -lboost_system -lboost_filesystem -ltcmalloc
 
 SRC[] =
+	lshforest
 	dbh
 	hist
 	kmeans

@@ -160,8 +160,10 @@ create_dbh(dnn::dbh &dbh, const std::string &file, const char *dir)
 {
         dnn::histgram hist;
 
-        if (! read_hist(hist, file.c_str()))
+        if (! read_hist(hist, file.c_str())) {
+                std::cout << "false" << std::endl;
                 return;
+        }
 
 
         boost::shared_array<uint32_t> hash(new uint32_t[dbh.get_num_table()]);
@@ -179,8 +181,10 @@ create_dbh(dnn::dbh &dbh, const std::string &file, const char *dir)
 
         fs::ofstream ofile(path);
 
-        if (! ofile)
+        if (! ofile) {
+                std::cout << "false" << std::endl;
                 return;
+        }
 
         const char *type = "dbh";
 

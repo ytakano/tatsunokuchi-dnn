@@ -168,8 +168,10 @@ create_hist(dnn::kmeans &km, const std::string &file, const char *dir)
 {
         dnn::features_t feat = dnn::get_features(file.c_str());
 
-        if (feat.get() == NULL)
+        if (feat.get() == NULL) {
+                std::cout << "false" << std::endl;
                 return;
+        }
 
 
         dnn::histgram hist = km.get_hist(feat);
@@ -181,8 +183,10 @@ create_hist(dnn::kmeans &km, const std::string &file, const char *dir)
 
         fs::ofstream ofile(path);
 
-        if (! ofile)
+        if (! ofile) {
+                std::cout << "false" << std::endl;
                 return;
+        }
 
         ofile << hist;
 
