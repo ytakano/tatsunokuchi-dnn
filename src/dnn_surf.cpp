@@ -11,6 +11,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/foreach.hpp>
+#include <boost/program_options.hpp>
 
 namespace fs = boost::filesystem;
 
@@ -151,11 +152,11 @@ fs::path
 get_hist_path(const std::string &file, const char *dir)
 {
         if (dir == NULL) {
-                return fs::path(file + ".hist");
+                return fs::path(file + ".surf.hist");
         }
 
         fs::path path(fs::initial_path<fs::path>());
-        path = dir / fs::system_complete(fs::path(file + ".hist"));
+        path = dir / fs::system_complete(fs::path(file + ".surf.hist"));
 
         fs::path branch(path.branch_path());
 
