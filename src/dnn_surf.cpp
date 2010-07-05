@@ -24,11 +24,11 @@ struct option longopts[] = {
 };
 
 bool read_conf(dnn::kmeans &km, char *conf);
-static void create_conf(std::vector<char*> &files, std::ostream &out);
+void create_conf(std::vector<char*> &files, std::ostream &out);
 void create_hist(dnn::kmeans &km, const std::string &file, const char *dir);
 
 
-static void
+void
 usage(char *progname)
 {
         std::cout << progname << " --create-conf img1.jpg img2.png\n"
@@ -56,7 +56,7 @@ usage(char *progname)
 
         std::cout << progname << " --read-conf surf.conf --dir /hist/to/sotre\n"
                   << progname << " -r surf.conf -d /hist/to/store\n"
-                  << "    histgram files are created on the /hist/to/store"
+                  << "    histgram files are created in the /hist/to/store"
                   << "directory\n"
                   << std::endl;
 
@@ -151,7 +151,7 @@ fs::path
 get_hist_path(const std::string &file, const char *dir)
 {
         if (dir == NULL) {
-                return fs::path(file);
+                return fs::path(file + ".hist");
         }
 
         fs::path path(fs::initial_path<fs::path>());

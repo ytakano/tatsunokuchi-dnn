@@ -25,6 +25,7 @@ operator<< (std::ostream &out, const dbh &d)
 std::istream&
 operator>> (std::istream &in, dbh &d)
 {
+        d.load_json(in);
 
         return in;
 }
@@ -47,6 +48,67 @@ operator>> (std::istream &in, dbh &d)
  *   ]
  * }
  */
+
+void
+dbh::load_json(std::istream &in)
+{
+        ptree pt;
+
+        m_pivot.clear();
+
+        try {
+                read_json(in, pt);
+
+                m_dim  = pt.get<int>("dim");
+                m_bits = pt.get<int>("bits");
+                m_num_table = pt.get<int>("num_table");
+
+                ptree &pvtree = pt.get_child("pivots");
+                BOOST_FOREACH(const ptree::value_type &p, pvtree) {
+                        pivot pv;
+                        int   i;
+
+                        pv.m_x1 = float_arr(new float[m_dim]);
+                        pv.m_x2 = float_arr(new float[m_dim]);
+                        pv.m_median = p.second.get<float>("median");
+
+                        const ptree &x1tree = p.second.get_child("x1");
+                        const ptree &x2tree = p.second.get_child("x2");
+
+                        // for x1
+                        i = 0;
+                        BOOST_FOREACH(const ptree::value_type &val, x1tree) {
+                                float f;
+                                f = boost::lexical_cast<float>(val.second.data());
+                                pv.m_x1[i++] = f;
+
+                                if (i >= m_dim)
+                                        break;
+                        }
+
+                        for (; i < m_dim; i++)
+                                pv.m_x1[i] = 0.0f;
+
+
+                        // for x2
+                        i = 0;
+                        BOOST_FOREACH(const ptree::value_type &val, x2tree) {
+                                float f;
+                                f = boost::lexical_cast<float>(val.second.data());
+                                pv.m_x2[i++] = f;
+
+                                if (i >= m_dim)
+                                        break;
+                        }
+
+                        for (; i < m_dim; i++)
+                                pv.m_x2[i] = 0.0f;
+
+
+                        m_pivot.push_back(pv);
+                }
+        } catch (...) { }
+}
 
 void
 dbh::print_json(std::ostream &out) const
@@ -129,7 +191,7 @@ dbh::build_pivot()
         m_pivot.clear();
 
         for (int i = 0; i < m_num_table; i++) {
-                for (unsigned int j = 0; j < m_bits; i++) {
+                for (unsigned int j = 0; j < m_bits; j++) {
                         rnd_pair pair;
                         pivot    pv;
 
@@ -203,6 +265,8 @@ dbh::get_hash(uint32_t *hash, float_arr hist)
                                 h  |= 1;
                         }
                 }
+
+                h <<= 32 - m_bits;
 
                 hash[i] = h;
         }

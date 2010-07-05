@@ -17,7 +17,10 @@ public:
 
         void    add_hist(float_arr hist) { m_hist.push_back(hist); }
         void    set_dim(int dim) { m_dim = dim; }
+        int     get_dim() const { return m_dim; }
         void    set_bits(unsigned int bits) { m_bits = bits < 32 ? bits : 32; }
+        void    set_num_table(int num) { m_num_table = num; }
+        int     get_num_table() const { return m_num_table; }
 
         bool    build_pivot();
         void    get_hash(uint32_t *hash, float_arr hist);

@@ -48,14 +48,14 @@ kmeans::load_json(std::istream &in)
 {
         ptree pt;
 
-        read_json(in, pt);
-
-        m_depth = pt.get<int>("depth");
-        m_dim   = pt.get<int>("dim");
-
-        m_root = kmnode_t(new kmeans_node);
-
         try {
+                read_json(in, pt);
+
+                m_depth = pt.get<int>("depth");
+                m_dim   = pt.get<int>("dim");
+
+                m_root = kmnode_t(new kmeans_node);
+
                 ptree &root = pt.get_child("root");
                 build_tree_from_json(root, m_root);
         } catch (...) { }
@@ -93,7 +93,7 @@ kmeans::build_tree_from_json(ptree &pt, kmnode_t node)
         } catch (...) { }
 
         for (; i < m_dim; i++) {
-                node->m_left->m_centroid[i] = 0.0;
+                node->m_left->m_centroid[i] = 0.0f;
         }
 
         build_tree_from_json(*left, node->m_left);
