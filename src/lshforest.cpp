@@ -1,5 +1,7 @@
 #include "lshforest.hpp"
 
+#include <boost/foreach.hpp>
+
 namespace dnn {
 
 lshforest::hash_val
@@ -43,6 +45,27 @@ lshforest::init(int num_tree)
 
         m_forest   = forest_t(new tree_t[num_tree]);
         m_num_tree = num_tree;
+}
+
+void
+lshforest::get_similar(std::set<std::string> &str,
+                       boost::shared_array<uint32_t> hash)
+{
+        for (int i = 0; i < m_num_tree; i++) {
+                std::vector<tree_t::iterator> vec;
+                hash_val h;
+
+                h.m_val = hash[i];
+                h.m_len = 32;
+
+                m_forest[i].knn_match(h, vec, 20);
+
+                BOOST_FOREACH(tree_t::iterator it, vec) {
+                        BOOST_FOREACH(std::string val, *it->second) {
+                                str.insert(val);
+                        }
+                }
+        }
 }
 
 void

@@ -17,7 +17,9 @@ public:
         void    init(int num_tree);
         void    add_hash(std::string str, boost::shared_array<uint32_t> hash);
         void    remove_hash(std::string str);
-        
+        void    get_similar(std::set<std::string> &str,
+                            boost::shared_array<uint32_t> hash);
+
 private:
         class hash_val {
         public:

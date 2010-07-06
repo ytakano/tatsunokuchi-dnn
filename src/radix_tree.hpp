@@ -60,6 +60,9 @@ public:
                                                std::vector<iterator> &vec);
         void                      greedy_match(const K &key,
                                                std::vector<iterator> &vec);
+        void                      knn_match(const K &key,
+                                            std::vector<iterator> &vec,
+                                            size_t max);
         iterator                  longest_match(const K &key);
 
 
@@ -79,7 +82,9 @@ private:
                                        const value_type &val);
         void                   greedy_match(radix_tree_node<K, T> *node,
                                             std::vector<iterator> &vec);
-
+        void                   knn_match(radix_tree_node<K, T> *node,
+                                         std::vector<iterator> &vec,
+                                         size_t max);
 
 #ifdef DEBUG
 public:
@@ -124,10 +129,59 @@ radix_tree<K, T>::print_nodes(radix_tree_node<K, T> *node, std::string space)
 
 template <typename K, typename T>
 void
+radix_tree<K, T>::knn_match(const K &key, std::vector<iterator> &vec,
+                            size_t max)
+{
+        if (m_root == NULL)
+                return;
+
+        radix_tree_node<K, T> *node;
+
+        node = find_node(key, m_root, 0);
+
+        max += vec.size();
+
+        if (node->m_is_leaf) {
+                if (vec.size() < max)
+                        vec.push_back(iterator(node));
+        } else {
+                greedy_match(node, vec);
+        }
+
+        if (vec.size() >= max)
+                return;
+
+        knn_match(node, vec, max);
+}
+
+template <typename K, typename T>
+void
+radix_tree<K, T>::knn_match(radix_tree_node<K, T> *node,
+                            std::vector<iterator> &vec, size_t max)
+{
+        if (node->m_parent == NULL)
+                return;
+
+        if (vec.size() >= max)
+                return;
+
+
+        typename radix_tree_node<K, T>::it_child it;
+        for (it = node->m_parent->m_children.begin();
+             it != node->m_parent->m_children.end(); ++it) {
+                if (it->second == node)
+                        continue;
+
+                greedy_match(node, vec);
+        }
+
+        knn_match(node->m_parent, vec, max);
+}
+
+template <typename K, typename T>
+void
 radix_tree<K, T>::prefix_match(const K &key, std::vector<iterator> &vec)
 {
-        vec.clear();
-
         if (m_root == NULL)
                 return;
 
@@ -243,8 +297,6 @@ void
 radix_tree<K, T>::greedy_match(const K &key, std::vector<iterator> &vec)
 {
         radix_tree_node<K, T> *node;
-
-        vec.clear();
 
         if (m_root == NULL)
                 return;
