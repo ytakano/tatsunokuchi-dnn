@@ -1,8 +1,6 @@
 #include "kmeans.hpp"
 #include "surf.hpp"
 
-#include <getopt.h>
-
 #include <fstream>
 #include <iostream>
 
@@ -14,135 +12,134 @@
 #include <boost/program_options.hpp>
 
 namespace fs = boost::filesystem;
+namespace po = boost::program_options;
 
-struct option longopts[] = {
-        {"help",        no_argument,       NULL, 'h'},
-        {"create-conf", no_argument,       NULL, 'c'},
-        {"read-conf",   required_argument, NULL, 'r'},
-        {"output",      required_argument, NULL, 'o'},
-        {"dir",         required_argument, NULL, 'd'},
-        {NULL,          0,                 NULL, 0}
-};
-
-bool read_conf(dnn::kmeans &km, char *conf);
-void create_conf(std::vector<char*> &files, std::ostream &out);
+bool read_conf(dnn::kmeans &km, std::string conf);
+void create_conf(std::vector<std::string> &files, std::ostream &out);
 void create_hist(dnn::kmeans &km, const std::string &file, const char *dir);
 
-
-void
-usage(char *progname)
-{
-        std::cout << progname << " --create-conf img1.jpg img2.png\n"
-                  << progname << " -c img1.jpg img2.png\n"
-                  << "    the config file created by using "
-                  << "img1.jpg and img2.jpg is outputted to the\n"
-                  << "    standard output\n"
-                  << std::endl;
-
-        std::cout << progname
-                  << " --create-conf --output surf.conf img1.jpg img2.png\n"
-                  << progname << " -c --output surf.conf img1.jpg img2.png\n"
-                  << "    the config file is outputted to surf.conf\n"
-                  << std::endl;
-
-        std::cout << progname << " --read-conf surf.conf\n"
-                  << progname << " -r surf.conf\n"
-                  << "    read file names from the standard input and create "
-                  << "histgram files\n"
-                  << "    the histgram files are outputted on the same "
-                  << "directory of it\n"
-                  << "    the config file must be specified to create histgrams"
-                  << "\n"
-                  << std::endl;
-
-        std::cout << progname << " --read-conf surf.conf --dir /hist/to/sotre\n"
-                  << progname << " -r surf.conf -d /hist/to/store\n"
-                  << "    histgram files are created in the /hist/to/store"
-                  << "directory\n"
-                  << std::endl;
-
-        std::cout << progname << " --help\n"
-                  << progname << " -h\n"
-                  << "    show this help"
-                  << std::endl;
-}
 
 int
 main(int argc, char *argv[])
 {
-        std::vector<char*> files;
-        char *progname = argv[0];
-        char *output = NULL;
-        char *conf   = NULL;
-        char *dir    = NULL;
-        bool cflag, rflag;
-        int  ch;
+        try {
+                po::variables_map vm;
 
-        cflag = false;
-        rflag = false;
-        while ((ch = getopt_long(argc, argv, "hcr:o:d:", longopts,
-                                 NULL)) != -1) {
-                switch (ch) {
-                case 'c':
-                        cflag = true;
-                        break;
-                case 'r':
-                        rflag = true;
-                        conf  = optarg;
-                        break;
-                case 'o':
-                        output = optarg;
-                        break;
-                case 'd':
-                        dir = optarg;
-                        break;
-                default:
-                        usage(progname);
-                        return -1;
+                po::options_description generic("generic options");
+
+                generic.add_options()
+                        ("help,h", "show this help");
+
+                po::options_description createconf("options for creating a config file");
+
+                createconf.add_options()
+                        ("create-config,c", "create config file")
+                        ("output,o", po::value<std::string>(),
+                         "name of a config file to be outputted.\n"
+                         "configuration is outputted to the stdout if ommited");
+
+                po::options_description createhist("options for creating histgram files");
+
+                createhist.add_options()
+                        ("read-config,r", po::value<std::string>(),
+                         "read a config file")
+                        ("dir,d", po::value<std::string>(),
+                         "directory to save histgram files.\n"
+                         "histgram files are saved to same directory of original files if ommited");
+
+                po::options_description hidden("Hidden options");
+                hidden.add_options()
+                        ("input-file", po::value< std::vector<std::string> >(),
+                         "input file");
+
+                po::options_description cmdline_options;
+                cmdline_options.add(generic).add(createconf).add(createhist).add(hidden);
+
+                po::positional_options_description p;
+                p.add("input-file", -1);
+
+                po::store(po::command_line_parser(argc, argv).
+                          options(cmdline_options).positional(p).run(), vm);
+                po::notify(vm);
+
+
+                if (vm.count("help")) {
+                        std::cout << generic << std::endl
+                                  << createconf << std::endl
+                                  << createhist;
+                        return 0;
                 }
-        }
 
-        if (optind < argc) {
-                while (optind < argc)
-                        files.push_back(argv[optind++]);
-        }
 
-        if (cflag) {
-                if (output == NULL) {
-                        create_conf(files, std::cout);
-                } else {
-                        std::ofstream ofile(output);
-
-                        if (ofile) {
-                                create_conf(files, ofile);
-                        } else {
-                                std::cerr << "failed to open file: "
-                                          << output << std::endl;
+                if (vm.count("create-config")) {
+                        if (! vm.count("input-file")) {
+                                std::cout << "error: no image files!"
+                                          << std::endl;
                                 return -1;
                         }
+
+                        std::string ofile;
+                        if (vm.count("output")) {
+                                ofile = vm["output"].as<std::string>();
+                        }
+
+
+                        std::vector<std::string> files;
+                        files = vm["input-file"].as<std::vector<std::string> >();
+
+
+                        if (ofile.empty()) {
+                                create_conf(files, std::cout);
+                        } else {
+                                std::ofstream of(ofile.c_str());
+
+                                if (of) {
+                                        create_conf(files, of);
+                                } else {
+                                        std::cerr << "failed to open file: "
+                                                  << ofile << std::endl;
+                                        return -1;
+                                }
+                        }
+
+                        return 0;
                 }
 
-                return 0;
-        }
 
-        dnn::kmeans km;
+                dnn::kmeans km;
 
-        if (rflag) {
-                if (! read_conf(km, conf)) {
-                        std::cerr << "failed to load the config file of \""
-                                  << conf << "\"" << std::endl;
+                if (vm.count("read-config")) {
+                        std::string conf;
+
+                        conf = vm["read-config"].as<std::string>();
+
+                        if (! read_conf(km, conf)) {
+                                std::cerr << "failed to load \""
+                                          << conf << "\"" << std::endl;
+                                return -1;
+                        }
+                } else {
+                        std::cout << createhist;
                         return -1;
                 }
-        } else {
-                usage(progname);
+
+
+                std::string dir;
+                if (vm.count("dir")) {
+                        dir = vm["dir"].as<std::string>();
+                }
+
+                while (std::cin) {
+                        std::string str;
+                        std::cin >> str;
+
+                        if (dir.empty())
+                                create_hist(km, str, NULL);
+                        else
+                                create_hist(km, str, dir.c_str());
+                }
+        } catch (...) {
                 return -1;
-        }
-
-        while (std::cin) {
-                std::string str;
-                std::cin >> str;
-
-                create_hist(km, str, dir);
         }
 
         return 0;
@@ -196,9 +193,9 @@ create_hist(dnn::kmeans &km, const std::string &file, const char *dir)
 }
 
 bool
-read_conf(dnn::kmeans &km, char *conf)
+read_conf(dnn::kmeans &km, std::string conf)
 {
-        std::ifstream ifile(conf);
+        std::ifstream ifile(conf.c_str());
 
         if (! ifile)
                 return false;
@@ -214,16 +211,16 @@ read_conf(dnn::kmeans &km, char *conf)
 }
 
 void
-create_conf(std::vector<char*> &files, std::ostream &out)
+create_conf(std::vector<std::string> &files, std::ostream &out)
 {
         dnn::kmeans km;
 
         km.set_dim(128);
 
-        BOOST_FOREACH(char* &c, files) {
+        BOOST_FOREACH(std::string &c, files) {
                 std::cerr << "loading \"" << c << "\"..." << std::endl;
 
-                dnn::features_t feat = dnn::get_surf_feat(c);
+                dnn::features_t feat = dnn::get_surf_feat(c.c_str());
 
                 if (feat.get() != NULL)
                         km.add_features(feat);

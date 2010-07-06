@@ -4,7 +4,7 @@
 # for release
 CXXFLAGS += -Wall -O3 -funroll-loops
 
-LDFLAGS += -lcv -lcxcore -lhighgui -lboost_system -lboost_filesystem -ltcmalloc
+LDFLAGS += -lcv -lcxcore -lhighgui -lboost_system -lboost_filesystem -lboost_program_options -ltcmalloc
 
 SRC[] =
 	ccv
