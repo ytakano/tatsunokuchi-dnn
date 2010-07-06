@@ -5,7 +5,7 @@
 
 namespace dnn {
 
-features_t get_features(const char *file);
+features_t get_surf_feat(const char *file);
 
 }
 

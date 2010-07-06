@@ -9,7 +9,7 @@
 namespace dnn {
 
 features_t
-get_features(const char *file)
+get_surf_feat(const char *file)
 {
         // (1)load Color Image
         cv::Mat colorImage = cv::imread(file, 1);
