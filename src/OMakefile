@@ -22,12 +22,17 @@ SRC_DBH[] =
 	$(SRC)
 	dnn_dbh
 
-.PHONY: clean static dnn_surf dnn_dbh
+SRC_SIM[] =
+	$(SRC)
+	dnn_sim
+
+.PHONY: clean static dnn_surf dnn_dbh dnn_sim
 
 dnn_surf: $(CXXProgram dnn_surf, $(SRC_SURF))
 dnn_dbh: $(CXXProgram dnn_dbh, $(SRC_DBH))
+dnn_sim: $(CXXProgram dnn_sim, $(SRC_SIM))
 
 clean:
-        rm -f *~ *.a *.o dnn_surf dnn_dbh
+        rm -f *~ *.a *.o dnn_surf dnn_dbh dnn_sim
 
-.DEFAULT: static dnn_surf dnn_dbh
+.DEFAULT: static dnn_surf dnn_dbh dnn_sim

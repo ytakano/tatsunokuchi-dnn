@@ -38,7 +38,7 @@ radix_length(const lshforest::hash_val &entry)
 }
 
 void
-lshforest::init(int num_tree)
+lshforest::init(uint32_t num_tree)
 {
         if (num_tree <= 0)
                 return;
@@ -51,7 +51,7 @@ void
 lshforest::get_similar(std::set<std::string> &str,
                        boost::shared_array<uint32_t> hash)
 {
-        for (int i = 0; i < m_num_tree; i++) {
+        for (uint32_t i = 0; i < m_num_tree; i++) {
                 std::vector<tree_t::iterator> vec;
                 hash_val h;
 
@@ -71,7 +71,7 @@ lshforest::get_similar(std::set<std::string> &str,
 void
 lshforest::remove_hash(std::string str)
 {
-        int i;
+        uint32_t i;
         hash_val h;
         hash_arr::iterator it1;
 
@@ -103,7 +103,7 @@ lshforest::add_hash(std::string str, boost::shared_array<uint32_t> hash)
 {
         remove_hash(str);
 
-        for (int i = 0; i < m_num_tree; i++) {
+        for (uint32_t i = 0; i < m_num_tree; i++) {
                 tree_t::iterator it;
                 hash_val h;
 

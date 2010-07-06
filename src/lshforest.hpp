@@ -14,12 +14,13 @@ namespace dnn {
 class lshforest {
 public:
 
-        void    init(int num_tree);
+        void    init(uint32_t num_tree);
         void    add_hash(std::string str, boost::shared_array<uint32_t> hash);
         void    remove_hash(std::string str);
         void    get_similar(std::set<std::string> &str,
                             boost::shared_array<uint32_t> hash);
 
+        uint32_t          get_num_tree() { return m_num_tree; }
 private:
         class hash_val {
         public:
@@ -67,7 +68,7 @@ private:
 
         forest_t        m_forest;
         hash_arr        m_str2hash;
-        int             m_num_tree;
+        uint32_t        m_num_tree;
 };
 
 }
