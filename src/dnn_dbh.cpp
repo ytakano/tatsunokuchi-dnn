@@ -1,4 +1,5 @@
 #include "dbh.hpp"
+#include "hash_t.hpp"
 #include "hist.hpp"
 
 #include <fstream>
@@ -140,7 +141,8 @@ main(int argc, char *argv[])
                         else
                                 create_dbh(dbh, str, dir.c_str());
                 }
-        } catch (...) {
+        } catch (std::exception &e) {
+                std::cout << e.what() << std::endl;
                 return -1;
         }
 
@@ -158,12 +160,12 @@ create_dbh(dnn::dbh &dbh, const std::string &file, const char *dir)
         }
 
 
-        boost::shared_array<uint32_t> hash(new uint32_t[dbh.get_num_table()]);
+        dnn::hash_t  hash;
 
         if (hist.m_dim != (uint32_t)dbh.get_dim())
                 return;
 
-        dbh.get_hash(hash.get(), hist.m_hist);
+        dbh.get_hash(hash, hist.m_hist);
 
         fs::path path = get_dbh_path(file, dir);
 
@@ -178,12 +180,7 @@ create_dbh(dnn::dbh &dbh, const std::string &file, const char *dir)
                 return;
         }
 
-        const char *type = "dbh";
-
-        ofile.write(type, 4);
-
-        for (int i = 0; i < dbh.get_num_table(); i++)
-                ofile.write((char*)&hash[i], sizeof(uint32_t));
+        ofile << hash;
 
         ofile.close();
 

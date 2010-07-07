@@ -252,8 +252,11 @@ dbh::get_dist(float_arr x, float_arr x1, float_arr x2)
 }
 
 void
-dbh::get_hash(uint32_t *hash, float_arr hist)
+dbh::get_hash(hash_t &hash, float_arr hist)
 {
+        hash.m_num  = m_num_table;
+        hash.m_hash = boost::shared_array<uint32_t>(new uint32_t[m_num_table]);
+
         for (int i = 0; i < m_num_table; i++) {
                 uint32_t h = 0;
                 for (unsigned int j = 0; j < m_bits; j++) {
@@ -268,7 +271,7 @@ dbh::get_hash(uint32_t *hash, float_arr hist)
 
                 h <<= 32 - m_bits;
 
-                hash[i] = h;
+                hash.m_hash[i] = h;
         }
 }
 

@@ -1,6 +1,7 @@
 #ifndef LSHFOREST_HPP
 #define LSHFOREST_HPP
 
+#include "hash_t.hpp"
 #include "radix_tree.hpp"
 
 #include <set>
@@ -15,7 +16,7 @@ class lshforest {
 public:
 
         void    init(uint32_t num_tree);
-        void    add_hash(std::string str, boost::shared_array<uint32_t> hash);
+        bool    add_hash(std::string str, hash_t &hash);
         void    remove_hash(std::string str);
         void    get_similar(std::set<std::string> &str,
                             boost::shared_array<uint32_t> hash);

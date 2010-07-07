@@ -13,6 +13,7 @@ SRC[] =
 	hist
 	kmeans
 	surf
+	hash_t
 
 SRC_SURF[] =
 	$(SRC)

@@ -138,7 +138,8 @@ main(int argc, char *argv[])
                         else
                                 create_hist(km, str, dir.c_str());
                 }
-        } catch (...) {
+        } catch (std::exception &e) {
+                std::cout << e.what() << std::endl;
                 return -1;
         }
 

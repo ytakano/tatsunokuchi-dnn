@@ -1,6 +1,7 @@
 #ifndef DBH_HPP
 #define DBH_HPP
 
+#include "hash_t.hpp"
 #include "hist.hpp"
 
 #include <map>
@@ -23,7 +24,7 @@ public:
         int     get_num_table() const { return m_num_table; }
 
         bool    build_pivot();
-        void    get_hash(uint32_t *hash, float_arr hist);
+        void    get_hash(hash_t &hash, float_arr hist);
 
         friend std::ostream& operator<< (std::ostream &out, const dbh &d);
         friend std::istream& operator>> (std::istream &in, dbh &d);

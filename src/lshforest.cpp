@@ -98,16 +98,19 @@ lshforest::remove_hash(std::string str)
         }
 }
 
-void
-lshforest::add_hash(std::string str, boost::shared_array<uint32_t> hash)
+bool
+lshforest::add_hash(std::string str, hash_t &hash)
 {
+        if (hash.m_num != m_num_tree)
+                return false;
+
         remove_hash(str);
 
         for (uint32_t i = 0; i < m_num_tree; i++) {
                 tree_t::iterator it;
                 hash_val h;
 
-                h.m_val = hash[i];
+                h.m_val = hash.m_hash[i];
                 h.m_len = 32;
 
                 it = m_forest[i].find(h);
@@ -122,7 +125,9 @@ lshforest::add_hash(std::string str, boost::shared_array<uint32_t> hash)
                 }
         }
 
-        m_str2hash[str] = hash;
+        m_str2hash[str] = hash.m_hash;
+
+        return true;
 }
 
 }
