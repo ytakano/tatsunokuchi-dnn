@@ -3,16 +3,12 @@
 
 #include <stdint.h>
 
+#include <fstream>
 #include <iostream>
 
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/fstream.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
 #include <boost/foreach.hpp>
 #include <boost/program_options.hpp>
 
-namespace fs = boost::filesystem;
 namespace po = boost::program_options;
 
 static const char *op_add = "add";
@@ -92,6 +88,7 @@ main(int argc, char *argv[])
                                 break;
                         case SIM_DEL:
                                 forest.remove_hash(line);
+                                std::cout << "true" << std::endl;
                                 state = SIM_OP;
                                 break;
                         case SIM_GET:

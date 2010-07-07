@@ -16,7 +16,7 @@ class error_read_ccv { };
 
 // color coherence vector
 void ccv(cv::Mat &src, feature_ccv &ret);
-feature_ccv get_ccv_feat(const char *file);
+bool get_ccv_feat(const char *file, feature_ccv &feat);
 
 std::ostream& operator<< (std::ostream &out, const feature_ccv &feat);
 std::istream& operator>> (std::istream &in, feature_ccv &feat);

@@ -197,17 +197,16 @@ ccv(cv::Mat &src, feature_ccv &ret)
         }
 }
 
-feature_ccv
-get_ccv_feat(const char *file)
+bool
+get_ccv_feat(const char *file, feature_ccv &feat)
 {
         cv::Mat colorImage = cv::imread(file, 1);
         if(colorImage.empty())
-                return feature_ccv();
+                return false;
 
-        feature_ccv feat;
         ccv(colorImage, feat);
 
-        return feat;
+        return true;
 }
 
 std::ostream&
@@ -219,10 +218,10 @@ operator<< (std::ostream &out, const feature_ccv &feat)
         out.write(head, strlen(head));
         out.write((char*)&dim, sizeof(dim));
 
-        for (i = 0; i < dim; i++)
+        for (i = 0; i < NUM_CCV_COLOR; i++)
                 out.write((char*)&feat.alpha[i], sizeof(float));
 
-        for (i = 0; i < dim; i++)
+        for (i = 0; i < NUM_CCV_COLOR; i++)
                 out.write((char*)&feat.beta[i], sizeof(float));
 
         return out;
