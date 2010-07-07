@@ -10,6 +10,8 @@
 
 namespace dnn {
 
+static const char *head = "histgram";
+
 class rgb {
 public:
         uint8_t r, g, b;
@@ -48,14 +50,17 @@ ccv(cv::Mat &src, feature_ccv &ret)
         boost::shared_array<uint8_t> image(new uint8_t[3 * w * h]);
         int ch = src.channels();
         rgb c;
+        int i;
 
         if (ch != 3)
                 return;
 
-        memset(ret.alpha, 0, sizeof(ret.alpha));
-        memset(ret.beta, 0, sizeof(ret.beta));
+        for (i = 0; i < NUM_CCV_COLOR; i++) {
+                ret.alpha[i] = 0.0f;
+                ret.beta[i]  = 0.0f;
+        }
 
-        for (int i = 0; i < w * h; i++) {
+        for (i = 0; i < w * h; i++) {
                 uint8_t r, g, b;
 
                 r = src.data[i];
@@ -190,6 +195,72 @@ ccv(cv::Mat &src, feature_ccv &ret)
                 ret.alpha[i] = (float)ret.alpha[i] / size;
                 ret.beta[i]  = (float)ret.beta[i] / size;
         }
+}
+
+feature_ccv
+get_ccv_feat(const char *file)
+{
+        cv::Mat colorImage = cv::imread(file, 1);
+        if(colorImage.empty())
+                return feature_ccv();
+
+        feature_ccv feat;
+        ccv(colorImage, feat);
+
+        return feat;
+}
+
+std::ostream&
+operator<< (std::ostream &out, const feature_ccv &feat)
+{
+        uint32_t dim = NUM_CCV_COLOR * 2;
+        uint32_t i;
+
+        out.write(head, strlen(head));
+        out.write((char*)&dim, sizeof(dim));
+
+        for (i = 0; i < dim; i++)
+                out.write((char*)&feat.alpha[i], sizeof(float));
+
+        for (i = 0; i < dim; i++)
+                out.write((char*)&feat.beta[i], sizeof(float));
+
+        return out;
+}
+
+std::istream&
+operator>> (std::istream &in, feature_ccv &feat)
+{
+
+        std::string h;
+        size_t len = strlen(head);
+        size_t i;
+
+        for (i = 0; i < len && in; i++) {
+                char c;
+                in.read(&c, sizeof(c));
+                h.push_back(c);
+        }
+
+        if (i < len || ! in)
+                throw error_read_ccv();
+
+
+        uint32_t dim;
+
+        in.read((char*)&dim, sizeof(dim));
+
+        if (dim != NUM_CCV_COLOR * 2)
+                throw error_read_ccv();
+
+        uint32_t j;
+        for (j = 0; j < NUM_CCV_COLOR; j++)
+                in.read((char*)&feat.alpha[j], sizeof(float));
+
+        for (j = 0; j < NUM_CCV_COLOR; j++)
+                in.read((char*)&feat.beta[j], sizeof(float));
+
+        return in;
 }
 
 }

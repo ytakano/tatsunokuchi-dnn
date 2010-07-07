@@ -4,7 +4,7 @@
 
 namespace dnn {
 
-const char *head = "histgram";
+static const char *head = "histgram";
 
 std::ostream&
 operator<< (std::ostream &out, const histgram &hist)
