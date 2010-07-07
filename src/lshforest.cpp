@@ -48,14 +48,16 @@ lshforest::init(uint32_t num_tree)
 }
 
 void
-lshforest::get_similar(std::set<std::string> &str,
-                       boost::shared_array<uint32_t> hash)
+lshforest::get_similar(std::set<std::string> &str, hash_t &hash)
 {
+        if (hash.m_num != m_num_tree)
+                return;
+
         for (uint32_t i = 0; i < m_num_tree; i++) {
                 std::vector<tree_t::iterator> vec;
                 hash_val h;
 
-                h.m_val = hash[i];
+                h.m_val = hash.m_hash[i];
                 h.m_len = 32;
 
                 m_forest[i].knn_match(h, vec, 20);

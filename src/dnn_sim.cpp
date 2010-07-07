@@ -32,6 +32,7 @@ dnn::lshforest forest;
 
 void read_op(std::string line);
 void add_hash(std::string str, std::string hashfile);
+void get_similar(std::string hashfile);
 
 
 int
@@ -69,7 +70,7 @@ main(int argc, char *argv[])
                         return -1;
                 }
 
-                std::string str, hash;
+                std::string str;
                 while (std::cin) {
                         std::string line;
                         std::cin >> line;
@@ -86,13 +87,16 @@ main(int argc, char *argv[])
                                 state = SIM_ADD_HASH;
                                 break;
                         case SIM_ADD_HASH:
-                                hash  = line;
+                                add_hash(str, line);
                                 state = SIM_OP;
-                                add_hash(str, hash);
                                 break;
                         case SIM_DEL:
+                                forest.remove_hash(line);
+                                state = SIM_OP;
+                                break;
                         case SIM_GET:
-                                ;
+                                get_similar(line);
+                                state = SIM_OP;
                         }
                 }
 
@@ -109,7 +113,6 @@ read_op(std::string line)
 {
         if (line == op_add) {
                 state = SIM_ADD_STR;
-                std::cout << "op = add" << std::endl;
         } else if (line == op_del) {
                 state = SIM_DEL;
         } else if (line == op_get) {
@@ -141,4 +144,33 @@ add_hash(std::string str, std::string hashfile)
         }
 
         std::cout << "true" << std::endl;
+}
+
+void
+get_similar(std::string hashfile)
+{
+        std::ifstream ifs(hashfile.c_str());
+        dnn::hash_t   hash;
+
+        if (! ifs) {
+                std::cout << "." << std::endl;
+                return;
+        }
+
+        try {
+                ifs >> hash;
+        } catch (...) {
+                std::cout << "." << std::endl;
+                return;
+        }
+
+        std::set<std::string> strset;
+
+        forest.get_similar(strset, hash);
+
+        BOOST_FOREACH(std::string s, strset) {
+                std::cout << s << std::endl;
+        }
+
+        std::cout << "." << std::endl;
 }
