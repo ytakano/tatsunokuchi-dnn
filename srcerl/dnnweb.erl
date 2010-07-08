@@ -35,16 +35,18 @@ open_json(Conf) ->
         {ok, Str} ->
             read_json(Str);
         _ ->
-            io:format("failed to open \"~p\"", [Conf]),
+            io:format("failed to open \"~s\"", [Conf]),
             exit({dnnweb, stopped})
     catch
         _:W ->
-            io:format("internal error: ~p\n", [W]),
+            io:format("internal error: catched '~p' when reading '~s'\n",
+                      [W, Conf]),
             exit({dnnweb, stopped})
     end.
 
 read_json(Str) ->
-    try json:decode_string(binary_to_list(Str)) of
+    StrList = binary_to_list(Str),
+    try json:decode_string(StrList) of
         {ok, Json} ->
             run_web(Json),
             run_ccv(Json),
@@ -54,7 +56,8 @@ read_json(Str) ->
             exit({dnnweb, stopped})
     catch
         _:W ->
-            io:format("internal error: ~p\n", [W]),
+            io:format("internal error : cathed '~p' when parsing\n~s\n",
+                      [W, StrList]),
             exit({dnnweb, stopped})
     end.
 
@@ -82,7 +85,7 @@ run_web(Json) ->
 
 
 print_run_error(Cmd) ->
-    io:format("cannot run ~p\n", [Cmd]).
+    io:format("cannot run ~s\n", [Cmd]).
 
 % run process to find similar objects by using the color coherence vector
 run_ccv(Json) ->
