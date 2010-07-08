@@ -2,7 +2,7 @@ body { margin: 0px; }
 
 h1.title { margin: 0px; }
 div.title { width: 90%; padding: 0px 8px; margin: 0px; }
-div.frame { width: 90%; padding: 8px; vertical-align: top; }
+div.frame { width: 90%; padding: 8px; vertical-align: top; clear: both; }
 
 div.image { float: left; padding: 0px; width: 150px; height: 150px;
             margin: 2px; text-align: center; }

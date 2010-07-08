@@ -14,12 +14,25 @@
     </div>
 
     <div class="frame">
-      <h2>Recently Modified</h2>
+      <h2>Randomly Selected</h2>
       <erl>
 %<!--
 out(Arg) ->
+    {html, recent:file2img(dnnrndimgs:get_imgs())}.
+%-->
+      </erl>
+    </div>
+
+    <div class="frame">
+      <h2>Recently Modified</h2>
+      <erl module=recent>
+%<!--
+-export([file2img/1]).
+-define(NUM_RECENT, 10).
+
+out(Arg) ->
     Recents = recent(),
-    {html, file2img(Recents)}.
+    {html, file2img(lists:sublist(Recents, ?NUM_RECENT))}.
 
 recent() ->
     Date = ets:first(dates),
@@ -28,7 +41,7 @@ recent() ->
 recent('$end_of_table', Files, _) ->
     Files;
 recent(Date, Files, N)
-  when N < 10 ->
+  when N < ?NUM_RECENT ->
     case ets:lookup(dates, Date) of
         [{Date, File}] ->
             F = sets:to_list(File),

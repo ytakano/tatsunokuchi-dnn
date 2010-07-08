@@ -4,6 +4,7 @@
 start([Conf]) ->
     process_flag(trap_exit, true),
     dnnfiles:start(),
+    dnnrndimgs:start(),
     open_json(Conf),
     loop().
 
@@ -15,6 +16,9 @@ loop() ->
 
             io:format("stopped: ~p\n", [Reason]),
 
+            catch dnnimgs:stop(),
+            catch dnnrndimgs:stop(),
+            catch dnnfiles:stop(),
             catch runcmd:stop(ccv),
             catch runcmd:stop(ccv),
             catch runcmd:stop(ccv_dbh),
@@ -22,8 +26,6 @@ loop() ->
             catch runcmd:stop(surf),
             catch runcmd:stop(surf_dbh),
             catch runcmd:stop(surf_sim),
-            catch dnnfiles:stop(),
-            catch dnnimgs:stop(),
 
             exit({dnnweb, stopped})
     end.

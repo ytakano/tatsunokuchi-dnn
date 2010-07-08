@@ -17,7 +17,7 @@ stop() ->
 init() ->
     register(dnnfiles, self()),
 
-    ets:new(files, [ordered_set, named_table]),
+    ets:new(files, [set, named_table]),
     ets:new(dates, [ordered_set, named_table]),
 
     loop().
