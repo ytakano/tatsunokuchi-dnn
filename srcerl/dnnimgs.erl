@@ -1,5 +1,5 @@
 -module(dnnimgs).
--export([start/3, stop/0, reload/0, gen_ccv/3, gen_surf/3]).
+-export([start/3, stop/0, reload/0]).
 
 start(Dir, Home, Hour) ->
     spawn_link(fun() ->
@@ -14,13 +14,14 @@ stop() ->
 reload() ->
     dnnimgs ! reload.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 init(Dir, Home) ->
     F = fun(File, _) ->
                 FileAbs = filename:absname(File),
                 DirAbs  = filename:absname(Dir),
 
-                CCVDBH   = [DirAbs, FileAbs, ".ccv.hist.dbh"],
-                SURFDBH  = [DirAbs, FileAbs, ".surf.hist.dbh"],
+                CCVDBH  = [DirAbs, FileAbs, ".ccv.hist.dbh"],
+                SURFDBH = [DirAbs, FileAbs, ".surf.hist.dbh"],
 
                 FileRel = relative(FileAbs, filename:absname(Home)),
 
@@ -32,10 +33,9 @@ init(Dir, Home) ->
 
     Pat = "\\.jpeg$|\\.jpg$|\\.jpe$|\\.png$|\\.bmp$|\\.dib$|\\.tiff$|\\.tif$|\\.pbm$|\\.pgm$|\\.ppm$",%",
 
-    filelib:fold_files(Home, Pat, true, F, []),
+    filelib:fold_files(Home, Pat, true, F, []).
 
-    ok.
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 loop(Dir, Home, Hour) ->
     F = fun(File, _) ->
                 gen_ccv(File, Dir, Home),
@@ -55,6 +55,7 @@ loop(Dir, Home, Hour) ->
             loop(Dir, Home, Hour)
     end.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 gen_ccv(File, Dir, Home) ->
     F1 = fun(Hist) ->
                  gen_dbh(ccv_dbh, Hist)
@@ -66,6 +67,7 @@ gen_ccv(File, Dir, Home) ->
 
     gen_hist(ccv, File, Dir, Home, ".ccv.hist.dbh", F1, F2).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 gen_surf(File, Dir, Home) ->
     F1 = fun(Hist) ->
                  gen_dbh(surf_dbh, Hist)
@@ -77,6 +79,7 @@ gen_surf(File, Dir, Home) ->
 
     gen_hist(surf, File, Dir, Home, ".surf.hist.dbh", F1, F2).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 gen_hist(Cmd, File, Dir, Home, Suffix, DBHFunc, SimFunc) ->
     FileAbs = filename:absname(File),
     DirAbs  = filename:absname(Dir),
@@ -112,6 +115,7 @@ gen_hist(Cmd, File, Dir, Home, Suffix, DBHFunc, SimFunc) ->
             ok
     end.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 gen_dbh(Cmd, Hist) ->
     try runcmd:call_port(Cmd, Hist) of
         _ ->
@@ -126,12 +130,14 @@ gen_dbh(Cmd, Hist) ->
             false
     end.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 relative([H1 | T1], [H2 | T2])
   when H1 == H2 ->
     relative(T1, T2);
 relative(File, _) ->
     File.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 add_hash(Cmd, File, Hash) ->
     try runcmd:call_port(Cmd, ["add\n", File, "\n", Hash]) of
         _ ->

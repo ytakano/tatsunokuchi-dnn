@@ -1,0 +1,56 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta http-equiv="content-style-type" content="text/css"/>
+    <link rel="stylesheet" href="style.css" type="text/css"/>
+    <title>Tatsunokuchi DNN</title>
+  </head>
+  <body>
+    <div class="frame">
+      <h1 class="title">Tatsunokuchi DNN</h1>
+      the Distributed Nearest Neighbor system born in Tatsunokuchi
+    </div>
+
+    <div class="frame">
+      <h2>Recently Modified</h2>
+      <erl>
+%<!--
+out(Arg) ->
+    Recents = recent(),
+    {html, file2img(Recents)}.
+
+recent() ->
+    Date = ets:first(dates),
+    recent(Date, [], 0).
+
+recent('$end_of_table', Files, _) ->
+    Files;
+recent(Date, Files, N)
+  when N < 10 ->
+    case ets:lookup(dates, Date) of
+        [{Date, File}] ->
+            F = sets:to_list(File),
+            recent(ets:next(dates, Date), [F | Files], N + length(F));
+        _ ->
+            Files
+    end;
+recent(_, Files, _) ->
+    Files.
+
+
+file2img(Files) ->
+    file2img(Files, []).
+
+file2img([], Imgs) ->
+    Imgs;
+file2img([File | T], Imgs) ->
+    Img = io_lib:format("        <div class=\"image\"><a href=\"~s\"><img alt=\"~s\" src=\"~s\"/></a></div>\n",
+                        [File, File, File]),
+    file2img(T, [Img | Imgs]).
+%-->
+      </erl>
+    </div>
+  </body>
+</html>

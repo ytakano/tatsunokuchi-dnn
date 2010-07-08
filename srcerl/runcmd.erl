@@ -16,6 +16,7 @@ call_port(Name, Msg) ->
 stop(Name) ->
     Name ! stop.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 loop(Name, Port) ->
     receive
         {call, Caller, Msg} ->

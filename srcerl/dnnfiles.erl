@@ -4,6 +4,16 @@
 start() ->
     spawn_link(fun init/0).
 
+add(File, Date) ->
+    dnnfiles ! {add, File, Date}.
+
+remove(File) ->
+    dnnfiles ! {remove, File}.
+
+stop() ->
+    dnnfiles ! stop.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 init() ->
     register(dnnfiles, self()),
 
@@ -12,6 +22,7 @@ init() ->
 
     loop().
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 loop() ->
     receive
         {add, File, Date} ->
@@ -24,15 +35,7 @@ loop() ->
             ok
     end.
 
-add(File, Date) ->
-    dnnfiles ! {add, File, Date}.
-
-remove(File) ->
-    dnnfiles ! {remove, File}.
-
-stop() ->
-    dnnfiles ! stop.
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 remove_file(File) ->
     case ets:lookup(files, File) of
         [{File, Date}] ->
@@ -42,6 +45,7 @@ remove_file(File) ->
             ok
     end.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 rm_by_date(File, Date) ->
     case ets:lookup(dates, Date) of
         [{Date, Files}] ->
@@ -56,6 +60,7 @@ rm_by_date(File, Date) ->
             ok
     end.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 add_file(File, Date) ->
     remove_file(File),
 
