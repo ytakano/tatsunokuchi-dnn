@@ -8,12 +8,6 @@ start([Conf]) ->
 
 loop() ->
     receive
-        {ccv, Line} ->
-            io:format("ccv: ~p\n", [Line]),
-            loop();
-        {surf, Line} ->
-            io:format("surf: ~p\n", [Line]),
-            loop();
         {'EXIT', _, Reason} ->
             yaws:stop(),
 
@@ -26,6 +20,7 @@ loop() ->
             catch runcmd:stop(surf),
             catch runcmd:stop(surf_dbh),
             catch runcmd:stop(surf_sim),
+            catch dnnimgs:stop(),
 
             exit({dnnweb, stopped})
     end.
@@ -50,13 +45,14 @@ read_json(Str) ->
         {ok, Json} ->
             run_web(Json),
             run_ccv(Json),
-            run_surf(Json);
+            run_surf(Json),
+            run_imgs(Json);
         _ ->
             io:format("invalid config file\n"),
             exit({dnnweb, stopped})
     catch
         _:W ->
-            io:format("internal error : cathed '~p' when parsing\n~s\n",
+            io:format("internal error : catched '~p' when parsing\n~s\n",
                       [W, StrList]),
             exit({dnnweb, stopped})
     end.
@@ -84,8 +80,27 @@ run_web(Json) ->
     end.
 
 
+run_imgs(Json) ->
+    Home = case jsonrpc:s(Json, home) of
+               H when is_list(H) ->
+                   H;
+               _ ->
+                   "public_html"
+           end,
+
+    Feat = case jsonrpc:s(Json, featdir) of
+               F when is_list(F) ->
+                   F;
+               _ ->
+                   "features"
+           end,
+
+    dnnimgs:start(Feat, Home, 6).
+
+
 print_run_error(Cmd) ->
     io:format("cannot run ~s\n", [Cmd]).
+
 
 % run process to find similar objects by using the color coherence vector
 run_ccv(Json) ->

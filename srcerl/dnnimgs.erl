@@ -1,5 +1,57 @@
 -module(dnnimgs).
--export([gen_ccv/3, gen_surf/3]).
+-export([start/3, stop/0, reload/0, gen_ccv/3, gen_surf/3]).
+
+start(Dir, Home, Hour) ->
+    spawn_link(fun() ->
+                       register(dnnimgs, self()),
+                       init(Dir, Home),
+                       loop(Dir, Home, Hour)
+               end).
+
+stop() ->
+    dnnimgs ! stop.
+
+reload() ->
+    dnnimgs ! reload.
+
+init(Dir, Home) ->
+    F = fun(File, _) ->
+                FileAbs = filename:absname(File),
+                DirAbs  = filename:absname(Dir),
+
+                CCVDBH   = [DirAbs, FileAbs, ".ccv.hist.dbh"],
+                SURFDBH  = [DirAbs, FileAbs, ".surf.hist.dbh"],
+
+                FileRel = relative(FileAbs, filename:absname(Home)),
+
+                add_hash(ccv_sim,  FileRel, CCVDBH),
+                add_hash(surf_sim, FileRel, SURFDBH)
+        end,
+
+    Pat = "\\.jpeg$|\\.jpg$|\\.jpe$|\\.png$|\\.bmp$|\\.dib$|\\.tiff$|\\.tif$|\\.pbm$|\\.pgm$|\\.ppm$",%",
+
+    filelib:fold_files(Home, Pat, true, F, []),
+
+    ok.
+
+loop(Dir, Home, Hour) ->
+    F = fun(File, _) ->
+                gen_ccv(File, Dir, Home),
+                gen_surf(File, Dir, Home)
+        end,
+
+    Pat = "\\.jpeg$|\\.jpg$|\\.jpe$|\\.png$|\\.bmp$|\\.dib$|\\.tiff$|\\.tif$|\\.pbm$|\\.pgm$|\\.ppm$",%",
+
+    filelib:fold_files(Home, Pat, true, F, []),
+
+    receive
+        reload ->
+            loop(Dir, Home, Hour);
+        stop ->
+            ok
+    after Hour * 60 * 60 * 1000 ->
+            loop(Dir, Home, Hour)
+    end.
 
 gen_ccv(File, Dir, Home) ->
     F1 = fun(Hist) ->
@@ -21,13 +73,13 @@ gen_surf(File, Dir, Home) ->
                  add_hash(surf_sim, Str, Hash)
          end,
 
-    gen_hist(surf, File, Dir, Home, ".ccv.surf.dbh", F1, F2).
+    gen_hist(surf, File, Dir, Home, ".surf.hist.dbh", F1, F2).
 
 gen_hist(Cmd, File, Dir, Home, Suffix, DBHFunc, SimFunc) ->
     FileAbs = filename:absname(File),
     DirAbs  = filename:absname(Dir),
 
-    DBH  = [DirAbs, FileAbs, Suffix],
+    DBH = [DirAbs, FileAbs, Suffix],
 
     FileTime = filelib:last_modified(File),
     DBHTime  = filelib:last_modified(DBH),
@@ -83,8 +135,7 @@ add_hash(Cmd, File, Hash) ->
             receive
                 {Cmd, {eol, "false"}} ->
                     false;
-                {Cmd, {eol, Line}} ->
-                    io:format("~s\n", [Line]),
+                {Cmd, {eol, "true"}} ->
                     ok
             end
     catch
