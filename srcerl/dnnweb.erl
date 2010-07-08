@@ -3,6 +3,7 @@
 
 start([Conf]) ->
     process_flag(trap_exit, true),
+    dnnfiles:start(),
     open_json(Conf),
     loop().
 
@@ -20,6 +21,7 @@ loop() ->
             catch runcmd:stop(surf),
             catch runcmd:stop(surf_dbh),
             catch runcmd:stop(surf_sim),
+            catch dnnfiles:stop(),
             catch dnnimgs:stop(),
 
             exit({dnnweb, stopped})

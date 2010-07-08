@@ -24,6 +24,8 @@ init(Dir, Home) ->
 
                 FileRel = relative(FileAbs, filename:absname(Home)),
 
+                dnnfiles:add(FileRel, filelib:last_modified(File)),
+
                 add_hash(ccv_sim,  FileRel, CCVDBH),
                 add_hash(surf_sim, FileRel, SURFDBH)
         end,
@@ -96,7 +98,8 @@ gen_hist(Cmd, File, Dir, Home, Suffix, DBHFunc, SimFunc) ->
                                 {ok, Hash} ->
                                     FileRel = relative(FileAbs,
                                                        filename:absname(Home)),
-                                    SimFunc(FileRel, Hash);
+                                    SimFunc(FileRel, Hash),
+                                    dnnfiles:add(FileRel, FileTime);
                                 _ ->
                                     false
                             end
