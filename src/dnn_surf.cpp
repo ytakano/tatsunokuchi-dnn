@@ -201,12 +201,12 @@ read_conf(dnn::kmeans &km, std::string conf)
         if (! ifile)
                 return false;
 
-        std::cout << "building the k-means tree from \"" << conf << "\"..."
+        std::cerr << "building the k-means tree from \"" << conf << "\"..."
                   << std::endl;
 
         ifile >> km;
 
-        std::cout << "finished building" << std::endl;
+        std::cerr << "finished building" << std::endl;
 
         return true;
 }
@@ -230,6 +230,6 @@ create_conf(std::vector<std::string> &files, std::ostream &out)
         std::cerr << "building the k-means tree..." << std::endl;
         km.build_tree();
 
-        std::cerr << "wrting..." << std::endl;
+        std::cerr << "writing..." << std::endl;
         out << km;
 }

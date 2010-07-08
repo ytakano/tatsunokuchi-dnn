@@ -15,7 +15,8 @@
 namespace fs = boost::filesystem;
 namespace po = boost::program_options;
 
-void create_conf(std::vector<std::string> &files, std::ostream &out);
+void create_conf(std::vector<std::string> &files, std::ostream &out,
+                 uint32_t dim, uint32_t tables);
 bool read_conf(dnn::dbh &dbh, std::string conf);
 bool read_hist(dnn::histgram &hist, std::string file);
 void create_dbh(dnn::dbh &dbh, const std::string &file, const char *dir);
@@ -39,7 +40,11 @@ main(int argc, char *argv[])
                         ("create-config,c", "create config file")
                         ("output,o", po::value<std::string>(),
                          "name of a config file to be outputted.\n"
-                         "configuration is outputted to the stdout if ommited");
+                         "configuration is outputted to the stdout if ommited")
+                        ("num-dimension,n", po::value<uint32_t>(),
+                         "the number of dimension of histgrams")
+                        ("tables,t", po::value<uint32_t>(),
+                         "the number of hash tables");
 
                 po::options_description createdbh("options for creating hashed files");
 
@@ -81,6 +86,28 @@ main(int argc, char *argv[])
                                 return -1;
                         }
 
+
+                        uint32_t dim;
+                        if (! vm.count("num-dimension")) {
+                                std::cout << "the number of dimensions is required!"
+                                          << std::endl;
+                                return -1;
+                        }
+
+                        dim = vm["num-dimension"].as<uint32_t>();
+
+
+                        uint32_t tables;
+                        if (! vm.count("tables")) {
+                                std::cout << "the number of tables is required!"
+                                          << std::endl;
+                                return -1;
+                        }
+
+                        tables = vm["tables"].as<uint32_t>();
+
+
+
                         std::string ofile;
                         if (vm.count("output")) {
                                 ofile = vm["output"].as<std::string>();
@@ -92,12 +119,12 @@ main(int argc, char *argv[])
 
 
                         if (ofile.empty()) {
-                                create_conf(files, std::cout);
+                                create_conf(files, std::cout, dim, tables);
                         } else {
                                 std::ofstream of(ofile.c_str());
 
                                 if (of) {
-                                        create_conf(files, of);
+                                        create_conf(files, of, dim, tables);
                                 } else {
                                         std::cerr << "failed to open file: "
                                                   << ofile << std::endl;
@@ -195,12 +222,12 @@ read_conf(dnn::dbh &dbh, std::string conf)
         if (! ifile)
                 return false;
 
-        std::cout << "loading \"" << conf << "\"..."
+        std::cerr << "loading \"" << conf << "\"..."
                   << std::endl;
 
         ifile >> dbh;
 
-        std::cout << "finished loading" << std::endl;
+        std::cerr << "finished loading" << std::endl;
 
         return true;
 }
@@ -238,12 +265,14 @@ read_hist(dnn::histgram &hist, std::string file)
 }
 
 void
-create_conf(std::vector<std::string> &files, std::ostream &out)
+create_conf(std::vector<std::string> &files, std::ostream &out, uint32_t dim,
+            uint32_t tables)
 {
         dnn::dbh dbh;
 
-        dbh.set_dim(1024);
+        dbh.set_dim(dim);
         dbh.set_bits(32);
+        dbh.set_num_table(tables);
 
         BOOST_FOREACH(const std::string &c, files) {
                 std::cerr << "loading \"" << c << "\"..." << std::endl;
@@ -253,7 +282,7 @@ create_conf(std::vector<std::string> &files, std::ostream &out)
                 if (! read_hist(hist, c))
                         continue;
 
-                if (hist.m_dim == 1024)
+                if (hist.m_dim == dim)
                         dbh.add_hist(hist.m_hist);
         }
 

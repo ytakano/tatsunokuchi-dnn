@@ -11,34 +11,51 @@ loop() ->
         {ccv, Line} ->
             io:format("ccv: ~p\n", [Line]),
             loop();
+        {surf, Line} ->
+            io:format("surf: ~p\n", [Line]),
+            loop();
         {'EXIT', _, Reason} ->
             yaws:stop(),
+
             io:format("stopped: ~p\n", [Reason]),
-            init:stop()
+
+            catch runcmd:stop(ccv),
+            catch runcmd:stop(ccv),
+            catch runcmd:stop(ccv_dbh),
+            catch runcmd:stop(ccv_sim),
+            catch runcmd:stop(surf),
+            catch runcmd:stop(surf_dbh),
+            catch runcmd:stop(surf_sim),
+
+            exit({dnnweb, stopped})
     end.
 
 open_json(Conf) ->
     try file:read_file(Conf) of
         {ok, Str} ->
-            io:format("~p\n", [Str]),
             read_json(Str);
         _ ->
-            io:format("failed to open \"~p\"", [Conf])
+            io:format("failed to open \"~p\"", [Conf]),
+            exit({dnnweb, stopped})
     catch
         _:W ->
-            io:format("internal error: ~p\n", [W])
+            io:format("internal error: ~p\n", [W]),
+            exit({dnnweb, stopped})
     end.
 
 read_json(Str) ->
     try json:decode_string(binary_to_list(Str)) of
         {ok, Json} ->
             run_web(Json),
-            run_ccv(Json);
+            run_ccv(Json),
+            run_surf(Json);
         _ ->
-            io:format("invalid config file\n")
+            io:format("invalid config file\n"),
+            exit({dnnweb, stopped})
     catch
         _:W ->
-            io:format("internal error: ~p\n", [W])
+            io:format("internal error: ~p\n", [W]),
+            exit({dnnweb, stopped})
     end.
 
 run_web(Json) ->
@@ -53,7 +70,7 @@ run_web(Json) ->
                P when is_integer(P) ->
                    P;
                _ ->
-                   7200
+                   7100
            end,
 
     case jsonrpc:s(Json, logdir) of
@@ -64,12 +81,76 @@ run_web(Json) ->
     end.
 
 
-run_ccv(Json) ->
-    Cmd = case jsonrpc:s(Json, ccv) of
-              C when is_list(C) ->
-                  C;
-              _ ->
-                   "ccv"
-          end,
+print_run_error(Cmd) ->
+    io:format("cannot run ~p\n", [Cmd]).
 
-    runcmd:start(ccv, Cmd).
+% run process to find similar objects by using the color coherence vector
+run_ccv(Json) ->
+    case jsonrpc:s(Json, ccv) of
+        undefiled ->
+            print_run_error("dnn_ccv");
+        J ->
+            run_ccv_cmd(J)
+    end.
+
+run_ccv_cmd(Json) ->
+    case jsonrpc:s(Json, cmd) of
+        Cmd when is_list(Cmd) ->
+            run_ccv_dbh(Json, Cmd);
+        _ ->
+            print_run_error("dnn_ccv")
+    end.
+
+run_ccv_dbh(Json, Cmd) ->
+    case jsonrpc:s(Json, dbh) of
+        DBH when is_list(DBH) ->
+            run_ccv_sim(Json, Cmd, DBH);
+        _ ->
+            print_run_error("dnn_ccv")
+    end.
+
+run_ccv_sim(Json, Cmd, DBH) ->
+    case jsonrpc:s(Json, sim) of
+        SIM when is_list(SIM) ->
+            runcmd:start(ccv, Cmd),
+            runcmd:start(ccv_dbh, DBH),
+            runcmd:start(ccv_sim, SIM);
+        _ ->
+            print_run_error("dnn_ccv")
+    end.
+
+
+% run process to find similar objects by using the SURF
+run_surf(Json) ->
+    case jsonrpc:s(Json, surf) of
+        undefiled ->
+            print_run_error("dnn_surf");
+        J ->
+            run_surf_cmd(J)
+    end.
+
+run_surf_cmd(Json) ->
+    case jsonrpc:s(Json, cmd) of
+        Cmd when is_list(Cmd) ->
+            run_surf_dbh(Json, Cmd);
+        _ ->
+            print_run_error("dnn_surf")
+    end.
+
+run_surf_dbh(Json, Cmd) ->
+    case jsonrpc:s(Json, dbh) of
+        DBH when is_list(DBH) ->
+            run_surf_sim(Json, Cmd, DBH);
+        _ ->
+            print_run_error("dnn_surf")
+    end.
+
+run_surf_sim(Json, Cmd, DBH) ->
+    case jsonrpc:s(Json, sim) of
+        SIM when is_list(SIM) ->
+            runcmd:start(surf, Cmd),
+            runcmd:start(surf_dbh, DBH),
+            runcmd:start(surf_sim, SIM);
+        _ ->
+            print_run_error("dnn_surf")
+    end.
