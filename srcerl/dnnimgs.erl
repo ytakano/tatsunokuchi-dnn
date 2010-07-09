@@ -28,6 +28,8 @@ init(Dir, Home) ->
 
                 FileRel = relative(FileAbs, filename:absname(Home)),
 
+                gen_thumb(File, Home),
+
                 dnnfiles:add(FileRel, filelib:last_modified(File)),
 
                 add_hash(ccv_sim,  FileRel, CCVDBH),

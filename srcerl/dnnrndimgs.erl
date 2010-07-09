@@ -44,6 +44,8 @@ get_imgs([H | T], Files) ->
     case get(H) of
         undefined ->
             get_imgs(T, Files);
+        '$end_of_table' ->
+            get_imgs(T, Files);
         F ->
             get_imgs(T, [F | Files])
     end.

@@ -35,7 +35,7 @@ out(Arg) ->
     {html, file2img(lists:sublist(Recents, ?NUM_RECENT))}.
 
 recent() ->
-    Date = ets:first(dates),
+    Date = ets:last(dates),
     recent(Date, [], 0).
 
 recent('$end_of_table', Files, _) ->
@@ -45,7 +45,7 @@ recent(Date, Files, N)
     case ets:lookup(dates, Date) of
         [{Date, File}] ->
             F = sets:to_list(File),
-            recent(ets:next(dates, Date), [F | Files], N + length(F));
+            recent(ets:prev(dates, Date), [F | Files], N + length(F));
         _ ->
             Files
     end;
