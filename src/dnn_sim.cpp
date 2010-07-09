@@ -65,41 +65,42 @@ main(int argc, char *argv[])
                                   << std::endl;
                         return -1;
                 }
-
-                std::string str;
-                while (std::cin) {
-                        std::string line;
-                        std::getline(std::cin, line);
-
-                        if (line.empty())
-                                continue;
-
-                        switch (state) {
-                        case SIM_OP:
-                                read_op(line);
-                                break;
-                        case SIM_ADD_STR:
-                                str   = line;
-                                state = SIM_ADD_HASH;
-                                break;
-                        case SIM_ADD_HASH:
-                                add_hash(str, line);
-                                state = SIM_OP;
-                                break;
-                        case SIM_DEL:
-                                forest.remove_hash(line);
-                                std::cout << "true" << std::endl;
-                                state = SIM_OP;
-                                break;
-                        case SIM_GET:
-                                get_similar(line);
-                                state = SIM_OP;
-                        }
-                }
-
         } catch (std::exception &e) {
                 std::cout << e.what() << std::endl;
                 return -1;
+        }
+
+        std::string str;
+        while (std::cin) {
+                std::string line;
+                std::getline(std::cin, line);
+
+                if (line.empty())
+                        continue;
+
+                switch (state) {
+                case SIM_OP:
+                        read_op(line);
+                        break;
+                case SIM_ADD_STR:
+                        str   = line;
+                        state = SIM_ADD_HASH;
+                        std::cout << "input hash file" << std::endl;
+                        break;
+                case SIM_ADD_HASH:
+                        add_hash(str, line);
+                        state = SIM_OP;
+                        break;
+                case SIM_DEL:
+                        forest.remove_hash(line);
+                        std::cout << "true" << std::endl;
+                        state = SIM_OP;
+                        break;
+                case SIM_GET:
+                        get_similar(line);
+                        state = SIM_OP;
+                        break;
+                }
         }
 
         return 0;
@@ -110,10 +111,13 @@ read_op(std::string line)
 {
         if (line == op_add) {
                 state = SIM_ADD_STR;
+                std::cout << "input string" << std::endl;
         } else if (line == op_del) {
                 state = SIM_DEL;
+                std::cout << "input string" << std::endl;
         } else if (line == op_get) {
                 state = SIM_GET;
+                std::cout << "input hash file" << std::endl;
         }
 }
 
@@ -167,6 +171,14 @@ get_similar(std::string hashfile)
 
         BOOST_FOREACH(std::string s, strset) {
                 std::cout << s << std::endl;
+
+                while (std::cin) {
+                        std::string line;
+                        std::getline(std::cin, line);
+
+                        if (line == "next")
+                                break;
+                }
         }
 
         std::cout << "." << std::endl;

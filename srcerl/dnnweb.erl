@@ -16,6 +16,7 @@ loop() ->
 
             io:format("stopped: ~p\n", [Reason]),
 
+            catch dnnsim:stop(),
             catch dnnimgs:stop(),
             catch dnnrndimgs:stop(),
             catch dnnfiles:stop(),
@@ -104,7 +105,8 @@ run_imgs(Json) ->
                    "features"
            end,
 
-    dnnimgs:start(Feat, Home, 6).
+    dnnimgs:start(Feat, Home, 6),
+    dnnsim:start(Feat, Home).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 print_run_error(Cmd) ->

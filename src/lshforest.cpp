@@ -60,7 +60,7 @@ lshforest::get_similar(std::set<std::string> &str, hash_t &hash)
                 h.m_val = hash.m_hash[i];
                 h.m_len = 32;
 
-                m_forest[i].knn_match(h, vec, 20);
+                m_forest[i].greedy_match(h, vec);
 
                 BOOST_FOREACH(tree_t::iterator it, vec) {
                         BOOST_FOREACH(std::string val, *it->second) {

@@ -173,13 +173,36 @@ relative(File, _) ->
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 add_hash(Cmd, File, Hash) ->
-    try runcmd:call_port(Cmd, ["add\n", File, "\n", Hash]) of
+    receive
+    after 200 ->
+            ok
+    end,
+
+    try runcmd:call_port(Cmd, "add") of
         _ ->
             receive
-                {Cmd, {eol, "false"}} ->
-                    false;
-                {Cmd, {eol, "true"}} ->
-                    ok
+                {Cmd, {eol, _}} ->
+                    try runcmd:call_port(Cmd, File) of
+                        _ ->
+                            receive
+                                {Cmd, {eol, _}} ->
+                                    try runcmd:call_port(Cmd, Hash) of
+                                        _ ->
+                                            receive
+                                                {Cmd, {eol, "true"}} ->
+                                                    true;
+                                                {Cmd, {eol, _}} ->
+                                                    false
+                                            end
+                                    catch
+                                        _ ->
+                                            false
+                                    end
+                            end
+                    catch
+                        _ ->
+                            false
+                    end
             end
     catch
         _ ->
