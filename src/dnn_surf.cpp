@@ -22,6 +22,9 @@ void create_hist(dnn::kmeans &km, const std::string &file, const char *dir);
 int
 main(int argc, char *argv[])
 {
+        dnn::kmeans km;
+        std::string dir;
+
         try {
                 po::variables_map vm;
 
@@ -106,8 +109,6 @@ main(int argc, char *argv[])
                 }
 
 
-                dnn::kmeans km;
-
                 if (vm.count("read-config")) {
                         std::string conf;
 
@@ -124,23 +125,22 @@ main(int argc, char *argv[])
                 }
 
 
-                std::string dir;
                 if (vm.count("dir")) {
                         dir = vm["dir"].as<std::string>();
-                }
-
-                while (std::cin) {
-                        std::string str;
-                        std::cin >> str;
-
-                        if (dir.empty())
-                                create_hist(km, str, NULL);
-                        else
-                                create_hist(km, str, dir.c_str());
                 }
         } catch (std::exception &e) {
                 std::cout << e.what() << std::endl;
                 return -1;
+        }
+
+        while (std::cin) {
+                std::string str;
+                std::cin >> str;
+
+                if (dir.empty())
+                        create_hist(km, str, NULL);
+                else
+                        create_hist(km, str, dir.c_str());
         }
 
         return 0;

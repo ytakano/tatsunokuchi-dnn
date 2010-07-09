@@ -1,6 +1,9 @@
 -module(dnnimgs).
 -export([start/3, stop/0, reload/0]).
 
+-define(IMG_DIR, "/images").
+-define(THUMB_DIR, "/thumbs").
+
 start(Dir, Home, Hour) ->
     spawn_link(fun() ->
                        register(dnnimgs, self()),
@@ -33,18 +36,19 @@ init(Dir, Home) ->
 
     Pat = "\\.jpeg$|\\.jpg$|\\.jpe$|\\.png$|\\.bmp$|\\.dib$|\\.tiff$|\\.tif$|\\.pbm$|\\.pgm$|\\.ppm$",%",
 
-    filelib:fold_files(Home, Pat, true, F, []).
+    filelib:fold_files([Home, ?IMG_DIR], Pat, true, F, []).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 loop(Dir, Home, Hour) ->
     F = fun(File, _) ->
+                gen_thumb(File, Home),
                 gen_ccv(File, Dir, Home),
                 gen_surf(File, Dir, Home)
         end,
 
     Pat = "\\.jpeg$|\\.jpg$|\\.jpe$|\\.png$|\\.bmp$|\\.dib$|\\.tiff$|\\.tif$|\\.pbm$|\\.pgm$|\\.ppm$",%",
 
-    filelib:fold_files(Home, Pat, true, F, []),
+    filelib:fold_files([Home, ?IMG_DIR], Pat, true, F, []),
 
     receive
         reload ->
@@ -53,6 +57,22 @@ loop(Dir, Home, Hour) ->
             ok
     after Hour * 60 * 60 * 1000 ->
             loop(Dir, Home, Hour)
+    end.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+gen_thumb(File, Home) ->
+    FileRel = relative(filename:absname(File), filename:absname(Home)),
+
+    Thumb = [Home, ?THUMB_DIR, FileRel, ".s.png"],
+
+    FileTime  = filelib:last_modified(File),
+    ThumbTime = filelib:last_modified(Thumb),
+
+    if
+        FileTime > DBHTime ->
+            ok;
+        true ->
+            ok
     end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

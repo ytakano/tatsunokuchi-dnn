@@ -31,14 +31,15 @@ SRC_SIM[] =
 	$(SRC)
 	dnn_sim
 
-.PHONY: clean static dnn_surf dnn_dbh dnn_sim dnn_ccv
+.PHONY: clean static dnn_surf dnn_dbh dnn_sim dnn_ccv dnn_resize
 
 dnn_surf: $(CXXProgram dnn_surf, $(SRC_SURF))
 dnn_ccv: $(CXXProgram dnn_ccv, $(SRC_CCV))
 dnn_dbh: $(CXXProgram dnn_dbh, $(SRC_DBH))
 dnn_sim: $(CXXProgram dnn_sim, $(SRC_SIM))
+dnn_resize: $(CXXProgram dnn_resize, dnn_resize)
 
 clean:
-        rm -f *~ *.a *.o dnn_surf dnn_dbh dnn_sim dnn_ccv
+        rm -f *~ *.a *.o dnn_surf dnn_dbh dnn_sim dnn_ccv dnn_resize
 
-.DEFAULT: static dnn_surf dnn_dbh dnn_sim dnn_ccv
+.DEFAULT: static dnn_surf dnn_dbh dnn_sim dnn_ccv dnn_resize
