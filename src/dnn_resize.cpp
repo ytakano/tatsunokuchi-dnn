@@ -1,14 +1,17 @@
 #include <iostream>
 
 #include <opencv/cv.h>
-//#include <opencv/cxcore.h>
-//#include <opencv/cvaux.h>
 #include <opencv/highgui.h>
+
+#include <boost/filesystem/convenience.hpp>
+#include <boost/filesystem/path.hpp>
 
 #define MAX_WIDTH  150
 #define MAX_HEIGHT 150
 
-void resize(const char *file, const char *thumb);
+namespace fs = boost::filesystem;
+
+bool resize(const char *file, const char *thumb);
 
 int
 main( int argc, char** argv )
@@ -18,13 +21,20 @@ main( int argc, char** argv )
         std::string src;
         while (std::cin) {
                 if (is_src) {
-                        std::cin >> src;
+                        std::getline(std::cin, src, '\n');
                         is_src = false;
                 } else {
                         std::string dst;
-                        std::cin >> dst;
+                        std::getline(std::cin, dst, '\n');
 
-                        resize(src.c_str(), dst.c_str());
+                        fs::path path(dst);
+
+                        fs::create_directories(path.branch_path());
+
+                        if (resize(src.c_str(), dst.c_str()))
+                                std::cout << "true" << std::endl;
+                        else
+                                std::cout << "false" << std::endl;
 
                         is_src = true;
                 }
@@ -33,14 +43,14 @@ main( int argc, char** argv )
         return 0;
 }
 
-void
+bool
 resize(const char *file, const char *thumb)
 {
         IplImage *img = NULL, *dst = NULL;
 
         img = cvLoadImage(file, 1);
         if (img == NULL)
-                return;
+                return false;
 
         if (img->width > img->height) {
                 double r = (double)MAX_WIDTH / (double)img->width;
@@ -52,10 +62,12 @@ resize(const char *file, const char *thumb)
                                     IPL_DEPTH_8U, 3);
         }
 
-        cvResize(img,dst,CV_INTER_CUBIC); 
+        cvResize(img, dst, CV_INTER_CUBIC); 
 
         cvSaveImage(thumb, dst);
 
         cvReleaseImage(&img);
         cvReleaseImage(&dst);
+
+        return true;
 }

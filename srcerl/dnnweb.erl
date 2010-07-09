@@ -19,7 +19,7 @@ loop() ->
             catch dnnimgs:stop(),
             catch dnnrndimgs:stop(),
             catch dnnfiles:stop(),
-            catch runcmd:stop(ccv),
+            catch runcmd:stop(resize),
             catch runcmd:stop(ccv),
             catch runcmd:stop(ccv_dbh),
             catch runcmd:stop(ccv_sim),
@@ -51,6 +51,7 @@ read_json(Str) ->
     try json:decode_string(StrList) of
         {ok, Json} ->
             run_web(Json),
+            run_resize(Json),
             run_ccv(Json),
             run_surf(Json),
             run_imgs(Json);
@@ -191,4 +192,16 @@ run_surf_sim(Json, Cmd, DBH) ->
             runcmd:start(surf_sim, SIM);
         _ ->
             print_run_error("dnn_surf")
+    end.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% run process to resize images
+%
+run_resize(Json) ->
+    case jsonrpc:s(Json, dnn_resize) of
+        Cmd when is_list(Cmd) ->
+            runcmd:start(resize, Cmd);
+        _ ->
+            print_run_error("dnn_resize")
     end.

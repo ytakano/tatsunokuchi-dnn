@@ -36,7 +36,8 @@ init(Dir, Home) ->
 
     Pat = "\\.jpeg$|\\.jpg$|\\.jpe$|\\.png$|\\.bmp$|\\.dib$|\\.tiff$|\\.tif$|\\.pbm$|\\.pgm$|\\.ppm$",%",
 
-    filelib:fold_files([Home, ?IMG_DIR], Pat, true, F, []).
+    filelib:fold_files([Home, ?IMG_DIR], Pat, true, F, []),
+    dnnrndimgs:shuffle().
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 loop(Dir, Home, Hour) ->
@@ -69,10 +70,21 @@ gen_thumb(File, Home) ->
     ThumbTime = filelib:last_modified(Thumb),
 
     if
-        FileTime > DBHTime ->
-            ok;
+        FileTime > ThumbTime ->
+            try runcmd:call_port(resize, [File, "\n", Thumb, "\n"]) of
+                _ ->
+                    receive
+                        {resize, {eol, "false"}} ->
+                            false;
+                        {resize, {eol, "true"}} ->
+                            true
+                    end
+            catch
+                _ ->
+                    false
+            end;
         true ->
-            ok
+            true
     end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -69,7 +69,7 @@ main(int argc, char *argv[])
                 std::string str;
                 while (std::cin) {
                         std::string line;
-                        std::cin >> line;
+                        std::getline(std::cin, line);
 
                         if (line.empty())
                                 continue;

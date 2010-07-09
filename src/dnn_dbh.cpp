@@ -26,6 +26,9 @@ fs::path get_dbh_path(const std::string &file, const char *dir);
 int
 main(int argc, char *argv[])
 {
+        dnn::dbh    dbh;
+        std::string dir;
+
         try {
                 po::variables_map vm;
 
@@ -136,8 +139,6 @@ main(int argc, char *argv[])
                 }
 
 
-                dnn::dbh dbh;
-
                 if (vm.count("read-config")) {
                         std::string conf;
 
@@ -154,23 +155,23 @@ main(int argc, char *argv[])
                 }
 
 
-                std::string dir;
                 if (vm.count("dir")) {
                         dir = vm["dir"].as<std::string>();
                 }
 
-                while (std::cin) {
-                        std::string str;
-                        std::cin >> str;
-
-                        if (dir.empty())
-                                create_dbh(dbh, str, NULL);
-                        else
-                                create_dbh(dbh, str, dir.c_str());
-                }
         } catch (std::exception &e) {
                 std::cout << e.what() << std::endl;
                 return -1;
+        }
+
+        while (std::cin) {
+                std::string str;
+                std::getline(std::cin, str);
+
+                if (dir.empty())
+                        create_dbh(dbh, str, NULL);
+                else
+                        create_dbh(dbh, str, dir.c_str());
         }
 
         return 0;

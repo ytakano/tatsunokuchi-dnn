@@ -59,7 +59,7 @@ file2img(Files) ->
 file2img([], Imgs) ->
     Imgs;
 file2img([File | T], Imgs) ->
-    Img = io_lib:format("        <div class=\"image\"><a href=\"~s\"><img alt=\"~s\" src=\"~s\"/></a></div>\n",
+    Img = io_lib:format("        <div class=\"image\"><a href=\"~s\"><img alt=\"~s\" src=\"/thumbs~s.s.png\"/></a></div>\n",
                         [File, File, File]),
     file2img(T, [Img | Imgs]).
 %-->

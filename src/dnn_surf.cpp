@@ -135,7 +135,7 @@ main(int argc, char *argv[])
 
         while (std::cin) {
                 std::string str;
-                std::cin >> str;
+                std::getline(std::cin, str);
 
                 if (dir.empty())
                         create_hist(km, str, NULL);

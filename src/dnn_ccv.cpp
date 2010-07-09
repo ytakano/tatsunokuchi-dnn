@@ -54,7 +54,7 @@ main(int argc, char *argv[])
 
         while (std::cin) {
                 std::string line;
-                std::cin >> line;
+                std::getline(std::cin, line);
 
                 if (dir.empty())
                         create_hist(line, NULL);
