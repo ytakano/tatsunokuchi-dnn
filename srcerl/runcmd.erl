@@ -1,5 +1,5 @@
 -module(runcmd).
--export([start/2, call_port/2, stop/1, call_port_null/1]).
+-export([start/2, call_port/2, stop/1]).
 
 start(Name, Cmd) ->
     F = fun() ->
@@ -12,9 +12,6 @@ start(Name, Cmd) ->
 
 call_port(Name, Msg) ->
     Name ! {call, self(), [Msg, "\n"]}.
-
-call_port_null(Name) ->
-    Name ! {call, self(), ""}.
 
 stop(Name) ->
     Name ! stop.
