@@ -1,6 +1,11 @@
 #include "lshforest.hpp"
 
+#include <math.h>
+
+#include <fstream>
+
 #include <boost/foreach.hpp>
+#include <boost/unordered_set.hpp>
 
 namespace dnn {
 
@@ -10,7 +15,12 @@ radix_substr(const lshforest::hash_val &entry, int begin, int num)
         lshforest::hash_val ret;
         uint32_t mask;
 
-        mask   = (1 << num) - 1;
+        if (num == 32)
+                mask = 0;
+        else
+                mask   = 1 << num;
+
+        mask  -= 1;
         mask <<= 32 - num - begin;
 
         ret.m_val = (entry.m_val & mask) << begin;
@@ -48,10 +58,14 @@ lshforest::init(uint32_t num_tree)
 }
 
 void
-lshforest::get_similar(std::set<std::string> &str, hash_t &hash)
+lshforest::get_similar(std::vector<std::string> &str, hash_t &hash,
+                       histgram &hist)
 {
         if (hash.m_num != m_num_tree)
                 return;
+
+        typedef boost::unordered_map<std::string, uint32_t>::iterator it_t;
+        boost::unordered_map<std::string, uint32_t> str_set;
 
         for (uint32_t i = 0; i < m_num_tree; i++) {
                 std::vector<tree_t::iterator> vec;
@@ -64,9 +78,51 @@ lshforest::get_similar(std::set<std::string> &str, hash_t &hash)
 
                 BOOST_FOREACH(tree_t::iterator it, vec) {
                         BOOST_FOREACH(std::string val, *it->second) {
-                                str.insert(val);
+                                it_t it = str_set.find(val);
+                                if (it != str_set.end()) {
+                                        it->second++;
+                                } else {
+                                        str_set[val] = 0;
+                                }
                         }
                 }
+        }
+
+        std::vector<str_dist> dists;
+
+        for (it_t it = str_set.begin(); it != str_set.end(); ++it) {
+                str_info info = m_str2hash[it->first];
+
+                if (it->second < m_num_tree / 2)
+                        continue;
+
+                str_dist dist;
+                std::ifstream ifs(info.m_hist_file.c_str());
+
+                if (ifs) {
+                        histgram hist2;
+                        try {
+                                ifs >> hist2;
+                                dist.m_dist = hist2 - hist;
+                        } catch (...) {
+                                dist.m_dist = 1.0f;
+                        }
+                } else {
+                        dist.m_dist = 1.0f;
+                }
+
+                if (dist.m_dist > m_threshold)
+                        continue;
+
+                dist.m_str = it->first;
+
+                dists.push_back(dist);
+        }
+
+        std::sort(dists.begin(), dists.end());
+
+        BOOST_FOREACH(const str_dist &ref, dists) {
+                str.push_back(ref.m_str);
         }
 }
 
@@ -81,7 +137,7 @@ lshforest::remove_hash(std::string str)
 
         if (it1 != m_str2hash.end()) {
                 for (i = 0; i < m_num_tree; i++) {
-                        h.m_val = it1->second[i];
+                        h.m_val = it1->second.m_hash[i];
                         h.m_len = 32;
 
                         tree_t::iterator it2;
@@ -101,7 +157,7 @@ lshforest::remove_hash(std::string str)
 }
 
 bool
-lshforest::add_hash(std::string str, hash_t &hash)
+lshforest::add_hash(std::string str, std::string hist, hash_t &hash)
 {
         if (hash.m_num != m_num_tree)
                 return false;
@@ -127,7 +183,12 @@ lshforest::add_hash(std::string str, hash_t &hash)
                 }
         }
 
-        m_str2hash[str] = hash.m_hash;
+        str_info info;
+
+        info.m_hash      = hash.m_hash;
+        info.m_hist_file = hist;
+
+        m_str2hash[str] = info;
 
         return true;
 }

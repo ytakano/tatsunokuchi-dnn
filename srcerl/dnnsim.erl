@@ -7,12 +7,12 @@ start(Dir, Home) ->
 
     F1 = fun() ->
                  register(dnnsim_ccv, self()),
-                 loop(ccv_sim, DirAbs, HomeAbs, ".ccv.hist.dbh")
+                 loop(ccv_sim, DirAbs, HomeAbs, ".ccv.hist")
          end,
 
     F2 = fun() ->
                  register(dnnsim_surf, self()),
-                 loop(surf_sim, DirAbs, HomeAbs, ".surf.hist.dbh")
+                 loop(surf_sim, DirAbs, HomeAbs, ".surf.hist")
          end,
 
     spawn_link(F1),
@@ -49,7 +49,8 @@ loop(Cmd, Dir, Home, Suffix) ->
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 get_similar(Cmd, Dir, Home, File, Suffix) ->
-    DBH = [Dir, Home, File, Suffix],
+    Hist = [Dir, Home, File, Suffix],
+    DBH  = [Dir, Home, File, Suffix, ".dbh"],
 
     try runcmd:call_port(Cmd, "get") of
         _ ->
@@ -57,7 +58,16 @@ get_similar(Cmd, Dir, Home, File, Suffix) ->
                 {Cmd, {eol, _}} ->
                     try runcmd:call_port(Cmd, DBH) of
                         _ ->
-                            get_similar(Cmd, [])
+                            receive
+                                {Cmd, {eol, _}} ->
+                                    try runcmd:call_port(Cmd, Hist) of
+                                        _ ->
+                                            get_similar(Cmd, [])
+                                    catch
+                                        _ ->
+                                            []
+                                    end
+                            end
                     catch
                         _ ->
                             []
@@ -72,14 +82,14 @@ get_similar(Cmd, Dir, Home, File, Suffix) ->
 get_similar(Cmd, Files) ->
     receive
         {Cmd, {eol, "."}} ->
-            Files;
+            lists:reverse(Files);
         {Cmd, {eol, File}} ->
             try runcmd:call_port(Cmd, "next") of
                 _ ->
                     get_similar(Cmd, [File | Files])
             catch
                 _ ->
-                    Files
+                    lists:reverse(Files)
             end
     end.
 

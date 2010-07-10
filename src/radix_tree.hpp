@@ -58,7 +58,7 @@ public:
         void                      erase(iterator it);
         void                      prefix_match(const K &key,
                                                std::vector<iterator> &vec);
-        void                      greedy_match(const K &key,
+        int                       greedy_match(const K &key,
                                                std::vector<iterator> &vec);
         void                      knn_match(const K &key,
                                             std::vector<iterator> &vec,
@@ -293,20 +293,22 @@ radix_tree<K, T>::operator[] (const K &lhs)
 }
 
 template <typename K, typename T>
-void
+int
 radix_tree<K, T>::greedy_match(const K &key, std::vector<iterator> &vec)
 {
         radix_tree_node<K, T> *node;
 
         if (m_root == NULL)
-                return;
+                return 0;
 
         node = find_node(key, m_root, 0);
 
-        if (node->m_is_leaf)
-                node = node->m_parent;
-
         greedy_match(node, vec);
+
+        if (node->m_parent == NULL)
+                return 0;
+        else
+                return node->m_parent->m_depth;
 }
 
 template <typename K, typename T>
@@ -314,10 +316,8 @@ void
 radix_tree<K, T>::greedy_match(radix_tree_node<K, T> *node,
                                std::vector<iterator> &vec)
 {
-        if (node->m_is_leaf) {
+        if (node->m_is_leaf)
                 vec.push_back(iterator(node));
-                return;
-        }
 
         typename std::map<K, radix_tree_node<K, T>*>::iterator it;
 

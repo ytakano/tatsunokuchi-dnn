@@ -1,4 +1,5 @@
 #include "hash_t.hpp"
+#include "hist.hpp"
 #include "lshforest.hpp"
 
 #include <stdint.h>
@@ -14,21 +15,25 @@ namespace po = boost::program_options;
 static const char *op_add = "add";
 static const char *op_del = "del";
 static const char *op_get = "get";
+static const char *op_threshold = "threshold";
 
 enum sim_state {
         SIM_OP,
         SIM_ADD_STR,
         SIM_ADD_HASH,
+        SIM_ADD_HIST,
         SIM_DEL,
-        SIM_GET
+        SIM_GET_HASH,
+        SIM_GET_FEAT,
+        SIM_THRESHOLD,
 };
 
 sim_state      state = SIM_OP;
 dnn::lshforest forest;
 
 void read_op(std::string line);
-void add_hash(std::string str, std::string hashfile);
-void get_similar(std::string hashfile);
+void add_hash(std::string str, std::string hashfile, std::string histfile);
+void get_similar(std::string hashfile, std::string histfile);
 
 
 int
@@ -70,7 +75,7 @@ main(int argc, char *argv[])
                 return -1;
         }
 
-        std::string str;
+        std::string str1, str2;
         while (std::cin) {
                 std::string line;
                 std::getline(std::cin, line);
@@ -83,12 +88,17 @@ main(int argc, char *argv[])
                         read_op(line);
                         break;
                 case SIM_ADD_STR:
-                        str   = line;
+                        str1  = line;
                         state = SIM_ADD_HASH;
-                        std::cout << "input hash file" << std::endl;
+                        std::cout << "input the hash file" << std::endl;
                         break;
                 case SIM_ADD_HASH:
-                        add_hash(str, line);
+                        str2 = line;
+                        state = SIM_ADD_HIST;
+                        std::cout << "input the histgram file" << std::endl;
+                        break;
+                case SIM_ADD_HIST:
+                        add_hash(str1, str2, line);
                         state = SIM_OP;
                         break;
                 case SIM_DEL:
@@ -96,8 +106,22 @@ main(int argc, char *argv[])
                         std::cout << "true" << std::endl;
                         state = SIM_OP;
                         break;
-                case SIM_GET:
-                        get_similar(line);
+                case SIM_GET_HASH:
+                        str1  = line;
+                        state = SIM_GET_FEAT;
+                        std::cout << "input the histgram file" << std::endl;
+                        break;
+                case SIM_GET_FEAT:
+                        get_similar(str1, line);
+                        state = SIM_OP;
+                        break;
+                case SIM_THRESHOLD:
+                        try {
+                                forest.set_threshold(boost::lexical_cast<float>(line));
+                                std::cout << "true" << std::endl;
+                        } catch (...) {
+                                std::cout << "false" << std::endl;
+                        }
                         state = SIM_OP;
                         break;
                 }
@@ -116,13 +140,17 @@ read_op(std::string line)
                 state = SIM_DEL;
                 std::cout << "input string" << std::endl;
         } else if (line == op_get) {
-                state = SIM_GET;
-                std::cout << "input hash file" << std::endl;
+                state = SIM_GET_HASH;
+                std::cout << "input the hash file" << std::endl;
+        } else if (line == op_threshold) {
+                state = SIM_THRESHOLD;
+                std::cout << "input the threshold" << std::endl;
         }
+
 }
 
 void
-add_hash(std::string str, std::string hashfile)
+add_hash(std::string str, std::string hashfile, std::string histfile)
 {
         std::ifstream ifs(hashfile.c_str());
         dnn::hash_t   hash;
@@ -139,7 +167,7 @@ add_hash(std::string str, std::string hashfile)
                 return;
         }
 
-        if (! forest.add_hash(str, hash)) {
+        if (! forest.add_hash(str, histfile, hash)) {
                 std::cout << "false" << std::endl;
                 return;
         }
@@ -148,26 +176,35 @@ add_hash(std::string str, std::string hashfile)
 }
 
 void
-get_similar(std::string hashfile)
+get_similar(std::string hashfile, std::string histfile)
 {
-        std::ifstream ifs(hashfile.c_str());
+        std::ifstream ifhash(hashfile.c_str());
+        std::ifstream ifhist(histfile.c_str());
         dnn::hash_t   hash;
+        dnn::histgram hist;
 
-        if (! ifs) {
+        if (! ifhash || ! ifhist) {
                 std::cout << "." << std::endl;
                 return;
         }
 
         try {
-                ifs >> hash;
+                ifhash >> hash;
         } catch (...) {
                 std::cout << "." << std::endl;
                 return;
         }
 
-        std::set<std::string> strset;
+        try {
+                ifhist >> hist;
+        } catch (...) {
+                std::cout << "." << std::endl;
+                return;
+        }
 
-        forest.get_similar(strset, hash);
+        std::vector<std::string> strset;
+
+        forest.get_similar(strset, hash, hist);
 
         BOOST_FOREACH(std::string s, strset) {
                 std::cout << s << std::endl;

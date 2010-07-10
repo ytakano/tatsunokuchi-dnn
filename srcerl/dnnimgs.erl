@@ -26,14 +26,20 @@ init(Dir, Home) ->
                 CCVDBH  = [DirAbs, FileAbs, ".ccv.hist.dbh"],
                 SURFDBH = [DirAbs, FileAbs, ".surf.hist.dbh"],
 
+                CCVHIST  = [DirAbs, FileAbs, ".ccv.hist"],
+                SURFHIST = [DirAbs, FileAbs, ".surf.hist"],
+
                 FileRel = relative(FileAbs, filename:absname(Home)),
 
                 gen_thumb(File, Home),
 
                 dnnfiles:add(FileRel, filelib:last_modified(File)),
 
-                add_hash(ccv_sim,  FileRel, CCVDBH),
-                add_hash(surf_sim, FileRel, SURFDBH)
+                add_hash(ccv_sim,  FileRel, CCVDBH, CCVHIST),
+                add_hash(surf_sim, FileRel, SURFDBH, SURFHIST),
+
+                set_threshold(ccv_sim, 0.2),
+                set_threshold(surf_sim, 0.01)
         end,
 
     Pat = "\\.jpeg$|\\.jpg$|\\.jpe$|\\.png$|\\.bmp$|\\.dib$|\\.tiff$|\\.tif$|\\.pbm$|\\.pgm$|\\.ppm$",%",
@@ -95,11 +101,11 @@ gen_ccv(File, Dir, Home) ->
                  gen_dbh(ccv_dbh, Hist)
          end,
 
-    F2 = fun(Str, Hash) ->
-                 add_hash(ccv_sim, Str, Hash)
+    F2 = fun(Str, Hash, Hist) ->
+                 add_hash(ccv_sim, Str, Hash, Hist)
          end,
 
-    gen_hist(ccv, File, Dir, Home, ".ccv.hist.dbh", F1, F2).
+    gen_hist(ccv, File, Dir, Home, ".ccv.hist", F1, F2).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 gen_surf(File, Dir, Home) ->
@@ -107,18 +113,19 @@ gen_surf(File, Dir, Home) ->
                  gen_dbh(surf_dbh, Hist)
          end,
 
-    F2 = fun(Str, Hash) ->
-                 add_hash(surf_sim, Str, Hash)
+    F2 = fun(Str, Hash, Hist) ->
+                 add_hash(surf_sim, Str, Hash, Hist)
          end,
 
-    gen_hist(surf, File, Dir, Home, ".surf.hist.dbh", F1, F2).
+    gen_hist(surf, File, Dir, Home, ".surf.hist", F1, F2).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 gen_hist(Cmd, File, Dir, Home, Suffix, DBHFunc, SimFunc) ->
     FileAbs = filename:absname(File),
     DirAbs  = filename:absname(Dir),
 
-    DBH = [DirAbs, FileAbs, Suffix],
+    DBH  = [DirAbs, FileAbs, Suffix, ".dbh"],
+    Hist = [DirAbs, FileAbs, Suffix],
 
     FileTime = filelib:last_modified(File),
     DBHTime  = filelib:last_modified(DBH),
@@ -135,7 +142,7 @@ gen_hist(Cmd, File, Dir, Home, Suffix, DBHFunc, SimFunc) ->
                                 {ok, Hash} ->
                                     FileRel = relative(FileAbs,
                                                        filename:absname(Home)),
-                                    SimFunc(FileRel, Hash),
+                                    SimFunc(FileRel, Hash, Hist),
                                     dnnfiles:add(FileRel, FileTime);
                                 _ ->
                                     false
@@ -172,32 +179,70 @@ relative(File, _) ->
     File.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-add_hash(Cmd, File, Hash) ->
-    receive
-    after 200 ->
-            ok
-    end,
-
+add_hash(Cmd, Str, Hash, Hist) ->
     try runcmd:call_port(Cmd, "add") of
         _ ->
             receive
                 {Cmd, {eol, _}} ->
-                    try runcmd:call_port(Cmd, File) of
+                    add_hash_str(Cmd, Str, Hash, Hist)
+            end
+    catch
+        _ ->
+            false
+    end.
+
+add_hash_str(Cmd, Str, Hash, Hist) ->
+    try runcmd:call_port(Cmd, Str) of
+        _ ->
+            receive
+                {Cmd, {eol, _}} ->
+                    add_hash_file(Cmd, Hash, Hist)
+            end
+    catch
+        _ ->
+            false
+    end.
+    
+add_hash_file(Cmd, Hash, Hist) ->
+    try runcmd:call_port(Cmd, Hash) of
+        _ ->
+            receive
+                {Cmd, {eol, _}} ->
+                    add_hash_hist(Cmd, Hist)
+            end
+    catch
+        _ ->
+            false
+    end.
+
+add_hash_hist(Cmd, Hist) ->
+    try runcmd:call_port(Cmd, Hist) of
+        _ ->
+            receive
+                {Cmd, {eol, "true"}} ->
+                    true;
+                {Cmd, {eol, _}} ->
+                    false
+            end
+    catch
+        _ ->
+            false
+    end.
+    
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+set_threshold(Cmd, Threshold) ->
+    try runcmd:call_port(Cmd, "threshold") of
+        _ ->
+            receive
+                {Cmd, {eol, _}} ->
+                    F = io_lib:format("~p", [Threshold]),
+                    try runcmd:call_port(Cmd, F) of
                         _ ->
                             receive
-                                {Cmd, {eol, _}} ->
-                                    try runcmd:call_port(Cmd, Hash) of
-                                        _ ->
-                                            receive
-                                                {Cmd, {eol, "true"}} ->
-                                                    true;
-                                                {Cmd, {eol, _}} ->
-                                                    false
-                                            end
-                                    catch
-                                        _ ->
-                                            false
-                                    end
+                                {Cmd, {eol, "true"}} ->
+                                    true;
+                                {Cmd, {eol, "false"}} ->
+                                    false
                             end
                     catch
                         _ ->

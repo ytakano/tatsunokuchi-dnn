@@ -2,6 +2,7 @@
 #define LSHFOREST_HPP
 
 #include "hash_t.hpp"
+#include "hist.hpp"
 #include "radix_tree.hpp"
 
 #include <set>
@@ -9,6 +10,7 @@
 
 #include <boost/shared_array.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/unordered_map.hpp>
 
 namespace dnn {
 
@@ -16,11 +18,16 @@ class lshforest {
 public:
 
         void    init(uint32_t num_tree);
-        bool    add_hash(std::string str, hash_t &hash);
+        bool    add_hash(std::string str, std::string hist, hash_t &hash);
         void    remove_hash(std::string str);
-        void    get_similar(std::set<std::string> &str, hash_t &hash);
+        void    get_similar(std::vector<std::string> &str, hash_t &hash,
+                            histgram &hist);
+        void    set_threshold(float threshold) { m_threshold = threshold; }
 
         uint32_t          get_num_tree() { return m_num_tree; }
+
+        lshforest() : m_threshold(0.1) { }
+
 private:
         class hash_val {
         public:
@@ -55,6 +62,22 @@ private:
                 }
         };
 
+        struct str_info {
+                boost::shared_array<uint32_t> m_hash;
+                std::string m_hist_file;
+        };
+
+        class str_dist {
+        public:
+                std::string m_str;
+                float       m_dist;
+
+                bool operator< (const str_dist &rhs) const
+                {
+                        return m_dist < rhs.m_dist;
+                }
+        };
+
         friend hash_val radix_substr(const lshforest::hash_val &entry,
                                      int begin, int num);
         friend hash_val radix_join(const lshforest::hash_val &entry1,
@@ -64,11 +87,13 @@ private:
         typedef boost::shared_ptr<std::set<std::string> > str_set;
         typedef radix_tree<hash_val, str_set> tree_t;
         typedef boost::shared_array<tree_t>   forest_t;
-        typedef std::map<std::string, boost::shared_array<uint32_t> > hash_arr;
+        typedef boost::unordered_map<std::string, str_info> hash_arr;
 
+public:
         forest_t        m_forest;
         hash_arr        m_str2hash;
         uint32_t        m_num_tree;
+        float           m_threshold;
 };
 
 }

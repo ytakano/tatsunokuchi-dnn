@@ -39,7 +39,7 @@ loop(Name, Port) ->
             end;
         {'EXIT', _, _} ->
             exit({terminated, Name});
-        W ->
-            io:format("????: ~p\n", W),
+        {Port, {data, Data}} ->
+            io:format("~p: ~p\n", [Name, Data]),
             loop(Name, Port)
     end.
