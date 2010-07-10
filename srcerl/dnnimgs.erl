@@ -59,6 +59,9 @@ loop(Dir, Home, Hour) ->
 
     filelib:fold_files([Home, ?IMG_DIR], Pat, true, F, []),
 
+    dnnsim:clear_cache_ccv(),
+    dnnsim:clear_cache_surf(),
+
     receive
         reload ->
             loop(Dir, Home, Hour);

@@ -1,18 +1,21 @@
 -module(dnnsim).
 -export([start/2, stop/0, get_similar_ccv/1, get_similar_surf/1]).
+-export([clear_cache_ccv/0, clear_cache_surf/0]).
 
 start(Dir, Home) ->
     DirAbs  = filename:absname(Dir),
     HomeAbs = filename:absname(Home),
 
     F1 = fun() ->
+                 TID = ets:new(ccv_sim_cache, [set]),
                  register(dnnsim_ccv, self()),
-                 loop(ccv_sim, DirAbs, HomeAbs, ".ccv.hist")
+                 loop(ccv_sim, DirAbs, HomeAbs, ".ccv.hist", TID)
          end,
 
     F2 = fun() ->
+                 TID = ets:new(surf_sim_cache, [set]),
                  register(dnnsim_surf, self()),
-                 loop(surf_sim, DirAbs, HomeAbs, ".surf.hist")
+                 loop(surf_sim, DirAbs, HomeAbs, ".surf.hist", TID)
          end,
 
     spawn_link(F1),
@@ -36,13 +39,31 @@ get_similar_surf(File) ->
             Files
     end.
 
+clear_cache_ccv() ->
+    dnnsim_ccv ! clear_cache.
+
+clear_cache_surf() ->
+    dnnsim_surf ! clear_cache.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-loop(Cmd, Dir, Home, Suffix) ->
+loop(Cmd, Dir, Home, Suffix, TID) ->
     receive
         {get, PID, File} ->
-            Files = get_similar(Cmd, Dir, Home, File, Suffix),
+            Files = case ets:lookup(TID, File) of
+                        [{File, F}] ->
+                            F;
+                        _ ->
+                            F = get_similar(Cmd, Dir, Home, File, Suffix),
+                            ets:insert(TID, {File, F}),
+                            F
+                    end,
+
             PID ! {dnnsim, Cmd, Files},
-            loop(Cmd, Dir, Home, Suffix);
+
+            loop(Cmd, Dir, Home, Suffix, TID);
+        clear_cache ->
+            ets:delete_all_objects(TID),
+            loop(Cmd, Dir, Home, Suffix, TID);
         stop ->
             ok
     end.
