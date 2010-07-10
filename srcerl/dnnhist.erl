@@ -6,20 +6,18 @@
 %%% @end
 %%% Created : 10 Jul 2010 by ytakano <ytakanoster@gmail.com>
 %%%-------------------------------------------------------------------
--module(dnnfiles).
+-module(dnnhist).
 
 -behaviour(gen_server).
 
 %% API
--export([start_link/0, add/2, remove/1]).
+-export([start_link/2, create/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
--define(SERVER, ?MODULE). 
-
--record(state, {}).
+-record(state, {cmd, port}).
 
 %%%===================================================================
 %%% API
@@ -32,14 +30,13 @@
 %% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
 %% @end
 %%--------------------------------------------------------------------
-start_link() ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+start_link(Server, Cmd) ->
+    gen_server:start_link({local, Server}, ?MODULE, [Cmd], []).
 
-add(File, Date) ->
-    gen_server:cast(?SERVER, {add, File, Date}).
-
-remove(File) ->
-    gen_server:cast(?SERVER, {remove, File}).
+create(Server, File) ->
+    Ref = make_ref(),
+    gen_server:cast(Server, {create, File, self(), Ref}),
+    Ref.
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -56,10 +53,14 @@ remove(File) ->
 %%                     {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
-init([]) ->
-    ets:new(files, [set, named_table]),
-    ets:new(dates, [ordered_set, named_table]),
-    {ok, #state{}}.
+init([Cmd]) ->
+    try open_port({spawn, Cmd}, [{line, 1024}]) of
+        Port ->
+            {ok, #state{cmd = Cmd, port = Port}}
+    catch
+        _:Why ->
+            {stop, Why}
+    end.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -89,11 +90,9 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_cast({add, File, Date}, State) ->
-    add_file(File, Date),
-    {noreply, State};
-handle_cast({remove, File}, State) ->
-    remove_file(File),
+handle_cast({create, File, PID, Ref}, State) ->
+    create_hist(State#state.port, File),
+    PID ! {created_hist, Ref},
     {noreply, State};
 handle_cast(_Msg, State) ->
     {noreply, State}.
@@ -139,40 +138,12 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+create_hist(Port, File) ->
+    Port ! {self(), {command, [File, "\n"] }},
 
-remove_file(File) ->
-    case ets:lookup(files, File) of
-        [{File, Date}] ->
-            rm_by_date(File, Date),
-            ets:delete(files, File);
-        _ ->
-            ok
+    receive
+        {Port, {data, {eol, "false"}}} ->
+            false;
+        {Port, {data, {eol, _}}} ->
+            true
     end.
-
-rm_by_date(File, Date) ->
-    case ets:lookup(dates, Date) of
-        [{Date, Files}] ->
-            F = sets:del_element(File, Files),
-            case sets:size(F) of
-                S when S > 0 ->
-                    ets:insert(dates, {Date, F});
-                _ ->
-                    ets:delete(dates, Date)
-            end;
-        _ ->
-            ok
-    end.
-
-add_file(File, Date) ->
-    remove_file(File),
-
-    ets:insert(files, {File, Date}),
-
-    F = case ets:lookup(dates, Date) of
-            [{Date, Files}] ->
-                sets:add_element(File, Files);
-            _ ->
-                sets:add_element(File, sets:new())
-        end,
-
-    ets:insert(dates, {Date, F}).

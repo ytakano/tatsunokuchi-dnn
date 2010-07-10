@@ -1,17 +1,17 @@
 %%%-------------------------------------------------------------------
-%%% @author ytakano <ytakanoster@gmail.com>
+%%% @author ytakano <ytakano@dhcp-is32e0-42.jaist.ac.jp>
 %%% @copyright (C) 2010, ytakano
 %%% @doc
 %%%
 %%% @end
-%%% Created : 10 Jul 2010 by ytakano <ytakanoster@gmail.com>
+%%% Created : 11 Jul 2010 by ytakano <ytakano@dhcp-is32e0-42.jaist.ac.jp>
 %%%-------------------------------------------------------------------
--module(dnnfiles).
+-module(dnnenv).
 
 -behaviour(gen_server).
 
 %% API
--export([start_link/0, add/2, remove/1]).
+-export([start_link/0, insert/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -35,11 +35,8 @@
 start_link() ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
-add(File, Date) ->
-    gen_server:cast(?SERVER, {add, File, Date}).
-
-remove(File) ->
-    gen_server:cast(?SERVER, {remove, File}).
+insert(Data) ->
+    gen_server:cast(?SERVER, {insert, Data}).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -57,8 +54,7 @@ remove(File) ->
 %% @end
 %%--------------------------------------------------------------------
 init([]) ->
-    ets:new(files, [set, named_table]),
-    ets:new(dates, [ordered_set, named_table]),
+    ets:new(env, [set, named_table]),
     {ok, #state{}}.
 
 %%--------------------------------------------------------------------
@@ -89,11 +85,8 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_cast({add, File, Date}, State) ->
-    add_file(File, Date),
-    {noreply, State};
-handle_cast({remove, File}, State) ->
-    remove_file(File),
+handle_cast({insert, Data}, State) ->
+    ets:insert(env, Data),
     {noreply, State};
 handle_cast(_Msg, State) ->
     {noreply, State}.
@@ -139,40 +132,3 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-
-remove_file(File) ->
-    case ets:lookup(files, File) of
-        [{File, Date}] ->
-            rm_by_date(File, Date),
-            ets:delete(files, File);
-        _ ->
-            ok
-    end.
-
-rm_by_date(File, Date) ->
-    case ets:lookup(dates, Date) of
-        [{Date, Files}] ->
-            F = sets:del_element(File, Files),
-            case sets:size(F) of
-                S when S > 0 ->
-                    ets:insert(dates, {Date, F});
-                _ ->
-                    ets:delete(dates, Date)
-            end;
-        _ ->
-            ok
-    end.
-
-add_file(File, Date) ->
-    remove_file(File),
-
-    ets:insert(files, {File, Date}),
-
-    F = case ets:lookup(dates, Date) of
-            [{Date, Files}] ->
-                sets:add_element(File, Files);
-            _ ->
-                sets:add_element(File, sets:new())
-        end,
-
-    ets:insert(dates, {Date, F}).

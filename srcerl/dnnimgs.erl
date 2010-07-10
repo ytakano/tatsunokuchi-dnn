@@ -38,8 +38,8 @@ init(Dir, Home) ->
                 add_hash(ccv_sim,  FileRel, CCVDBH, CCVHIST),
                 add_hash(surf_sim, FileRel, SURFDBH, SURFHIST),
 
-                set_threshold(ccv_sim, 0.2),
-                set_threshold(surf_sim, 0.01)
+                set_threshold(ccv_sim, 0.15),
+                set_threshold(surf_sim, 0.005)
         end,
 
     Pat = "\\.jpeg$|\\.jpg$|\\.jpe$|\\.png$|\\.bmp$|\\.dib$|\\.tiff$|\\.tif$|\\.pbm$|\\.pgm$|\\.ppm$",%",

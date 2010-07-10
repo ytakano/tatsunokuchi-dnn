@@ -18,7 +18,7 @@
       <erl>
 %<!--
 out(Arg) ->
-    {html, recent:file2img(dnnrndimgs:get_imgs())}.
+    {html, recent:file2img(dnnrndimgs:get_images())}.
 %-->
       </erl>
     </div>
@@ -27,7 +27,7 @@ out(Arg) ->
       <h2>Recently Modified</h2>
       <erl module=recent>
 %<!--
--export([file2img/1]).
+-export([file2img/1, file2img/2]).
 -define(NUM_RECENT, 10).
 
 out(Arg) ->
@@ -39,29 +39,40 @@ recent() ->
     recent(Date, [], 0).
 
 recent('$end_of_table', Files, _) ->
-    Files;
+    lists:reverse(Files);
 recent(Date, Files, N)
   when N < ?NUM_RECENT ->
     case ets:lookup(dates, Date) of
         [{Date, File}] ->
             F = sets:to_list(File),
-            recent(ets:prev(dates, Date), [F | Files], N + length(F));
+            recent(ets:prev(dates, Date), prepend(F, Files), N + length(F));
         _ ->
             Files
     end;
 recent(_, Files, _) ->
-    Files.
+    lists:reverse(Files).
+
+prepend([], Files) ->
+    Files;
+prepend([H | T], Files) ->
+    prepend(T, [H | Files]).
 
 
 file2img(Files) ->
-    file2img(Files, []).
+    file2img(Files, [], "").
 
-file2img([], Imgs) ->
-    Imgs;
-file2img([File | T], Imgs) ->
-    Img = io_lib:format("        <div class=\"image\"><a href=\"~s\"><img alt=\"~s\" src=\"/thumbs~s.s.png\"/></a></div>\n",
-                        [File, File, File]),
-    file2img(T, [Img | Imgs]).
+file2img(Files, Exc) ->
+    file2img(Files, [], Exc).
+
+file2img([], Imgs, _) ->
+    lists:reverse(Imgs);
+file2img([File | T], Imgs, Exc)
+  when Exc =:= File->
+    file2img(T, Imgs, Exc);
+file2img([File | T], Imgs, Exc) ->
+    Img = io_lib:format("        <div class=\"image\"><a href=\"/similar.yaws?img=~s\"><img alt=\"~s\" src=\"/thumbs~s.s.png\"/></a></div>\n",
+                        [yaws_api:url_encode(File), File, File]),
+    file2img(T, [Img | Imgs], Exc).
 %-->
       </erl>
     </div>

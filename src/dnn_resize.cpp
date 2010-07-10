@@ -21,11 +21,13 @@ main( int argc, char** argv )
         std::string src;
         while (std::cin) {
                 if (is_src) {
-                        std::getline(std::cin, src, '\n');
+                        std::getline(std::cin, src);
                         is_src = false;
+                        std::cout << "input the file name to save"
+                                  << std::endl;
                 } else {
                         std::string dst;
-                        std::getline(std::cin, dst, '\n');
+                        std::getline(std::cin, dst);
 
                         fs::path path(dst);
 

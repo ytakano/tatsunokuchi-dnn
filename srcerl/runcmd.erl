@@ -3,12 +3,13 @@
 
 start(Name, Cmd) ->
     F = fun() ->
-                register(Name, self()),
                 process_flag(trap_exit, true),
                 Port = open_port({spawn, Cmd}, [{line, 4096}]),
                 loop(Name, Port)
         end,
-    spawn_link(F).
+    PID = spawn_link(F),
+
+    register(Name, PID).
 
 call_port(Name, Msg) ->
     Name ! {call, self(), [Msg, "\n"]}.

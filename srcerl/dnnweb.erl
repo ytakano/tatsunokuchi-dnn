@@ -1,41 +1,49 @@
 -module(dnnweb).
--export([start/1]).
+-export([start/1, get_hash_path/0]).
 
 start([Conf]) ->
-    process_flag(trap_exit, true),
-    dnnfiles:start(),
-    dnnrndimgs:start(),
-    open_json(Conf),
-    loop().
+    dnnenv:start_link(),
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-loop() ->
-    receive
-        {'EXIT', _, Reason} ->
-            yaws:stop(),
+    Json = open_json(Conf),
 
-            io:format("stopped: ~p\n", [Reason]),
+    run_ccv(Json),
+    run_surf(Json),
+    run_resize(Json),
+    run_yaws(Json),
+    dnnfiles:start_link(),
+    run_imgcrawler(Json),
+    dnnrndimgs:start_link().
 
-            catch dnnsim:stop(),
-            catch dnnimgs:stop(),
-            catch dnnrndimgs:stop(),
-            catch dnnfiles:stop(),
-            catch runcmd:stop(resize),
-            catch runcmd:stop(ccv),
-            catch runcmd:stop(ccv_dbh),
-            catch runcmd:stop(ccv_sim),
-            catch runcmd:stop(surf),
-            catch runcmd:stop(surf_dbh),
-            catch runcmd:stop(surf_sim),
-
-            exit({dnnweb, stopped})
+get_hash_path() ->
+    case ets:lookup(env, home) of
+        [{home, Home}] ->
+            case ets:lookup(env, dir) of
+                [{dir, Dir}] ->
+                    {Dir, Home};
+                _ ->
+                    false
+            end;
+        _ ->
+            false
     end.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
+%%--------------------------------------------------------------------
 open_json(Conf) ->
     try file:read_file(Conf) of
         {ok, Str} ->
-            read_json(Str);
+            StrList = binary_to_list(Str),
+            try json:decode_string(StrList) of
+                {ok, Json} ->
+                    Json;
+                _ ->
+                    io:format("invalid config file\n"),
+                    exit({dnnweb, stopped})
+            catch
+                _:W ->
+                    io:format("internal error : catched '~p' when parsing\n~s\n",
+                              [W, StrList]),
+                    exit({dnnweb, stopped})
+            end;
         _ ->
             io:format("failed to open \"~s\"", [Conf]),
             exit({dnnweb, stopped})
@@ -46,28 +54,8 @@ open_json(Conf) ->
             exit({dnnweb, stopped})
     end.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-read_json(Str) ->
-    StrList = binary_to_list(Str),
-    try json:decode_string(StrList) of
-        {ok, Json} ->
-            run_web(Json),
-            run_resize(Json),
-            run_ccv(Json),
-            run_surf(Json),
-            run_imgs(Json);
-        _ ->
-            io:format("invalid config file\n"),
-            exit({dnnweb, stopped})
-    catch
-        _:W ->
-            io:format("internal error : catched '~p' when parsing\n~s\n",
-                      [W, StrList]),
-            exit({dnnweb, stopped})
-    end.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-run_web(Json) ->
+%%--------------------------------------------------------------------
+run_yaws(Json) ->
     Home = case jsonrpc:s(Json, home) of
                H when is_list(H) ->
                    H;
@@ -89,8 +77,8 @@ run_web(Json) ->
             yaws:start_embedded(Home, [{port, Port}])
     end.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-run_imgs(Json) ->
+%%--------------------------------------------------------------------
+run_imgcrawler(Json) ->
     Home = case jsonrpc:s(Json, home) of
                H when is_list(H) ->
                    H;
@@ -105,105 +93,107 @@ run_imgs(Json) ->
                    "features"
            end,
 
-    dnnimgs:start(Feat, Home, 6),
-    dnnsim:start(Feat, Home).
+    dnnenv:insert({home, filename:absname(Home)}),
+    dnnenv:insert({dir, filename:absname(Feat)}),
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    dnnimgcrawler:start_link(Feat, Home),
+    dnnimgcrawler:update().
+
+%%--------------------------------------------------------------------
 print_run_error(Cmd) ->
     io:format("cannot run ~s\n", [Cmd]).
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-% run process to find similar objects by using the color coherence vector
-%
+%%--------------------------------------------------------------------
+%%
+%% run process to find similar objects by using the color coherence vector
+%%
+%%--------------------------------------------------------------------
 run_ccv(Json) ->
     case jsonrpc:s(Json, ccv) of
         undefiled ->
             print_run_error("dnn_ccv");
         J ->
-            run_ccv_cmd(J)
+            run_ccv_hist(J),
+            run_ccv_dbh(J),
+            run_ccv_sim(J)
     end.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-run_ccv_cmd(Json) ->
-    case jsonrpc:s(Json, cmd) of
-        Cmd when is_list(Cmd) ->
-            run_ccv_dbh(Json, Cmd);
+run_ccv_hist(Json) ->
+    case jsonrpc:s(Json, hist) of
+        Hist when is_list(Hist) ->
+            dnnhist:start_link(ccv_hist, Hist);
         _ ->
-            print_run_error("dnn_ccv")
+            print_run_error("ccv_hist")
     end.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-run_ccv_dbh(Json, Cmd) ->
+run_ccv_dbh(Json) ->
     case jsonrpc:s(Json, dbh) of
         DBH when is_list(DBH) ->
-            run_ccv_sim(Json, Cmd, DBH);
+            dnndbh:start_link(ccv_dbh, DBH);
         _ ->
-            print_run_error("dnn_ccv")
+            print_run_error("ccv_dbh")
     end.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-run_ccv_sim(Json, Cmd, DBH) ->
+run_ccv_sim(Json) ->
     case jsonrpc:s(Json, sim) of
         SIM when is_list(SIM) ->
-            runcmd:start(ccv, Cmd),
-            runcmd:start(ccv_dbh, DBH),
-            runcmd:start(ccv_sim, SIM);
+            dnnsim:start_link(ccv_sim, SIM),
+            dnnsim:set_threshold(ccv_sim, 0.15);
         _ ->
-            print_run_error("dnn_ccv")
+            print_run_error("ccv_sim")
     end.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-% run process to find similar objects by using the SURF
-%
+%%--------------------------------------------------------------------
+%%
+%% run process to find similar objects by using the SURF
+%%
+%%--------------------------------------------------------------------
 run_surf(Json) ->
     case jsonrpc:s(Json, surf) of
         undefiled ->
             print_run_error("dnn_surf");
         J ->
-            run_surf_cmd(J)
+            run_surf_hist(J),
+            run_surf_dbh(J),
+            run_surf_sim(J)
     end.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-run_surf_cmd(Json) ->
-    case jsonrpc:s(Json, cmd) of
-        Cmd when is_list(Cmd) ->
-            run_surf_dbh(Json, Cmd);
+run_surf_hist(Json) ->
+    case jsonrpc:s(Json, hist) of
+        Hist when is_list(Hist) ->
+            dnnhist:start_link(surf_hist, Hist);
         _ ->
-            print_run_error("dnn_surf")
+            print_run_error("surf_hist")
     end.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-run_surf_dbh(Json, Cmd) ->
+run_surf_dbh(Json) ->
     case jsonrpc:s(Json, dbh) of
         DBH when is_list(DBH) ->
-            run_surf_sim(Json, Cmd, DBH);
+            dnndbh:start_link(surf_dbh, DBH);
         _ ->
-            print_run_error("dnn_surf")
+            print_run_error("surf_dbh")
     end.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-run_surf_sim(Json, Cmd, DBH) ->
+run_surf_sim(Json) ->
     case jsonrpc:s(Json, sim) of
         SIM when is_list(SIM) ->
-            runcmd:start(surf, Cmd),
-            runcmd:start(surf_dbh, DBH),
-            runcmd:start(surf_sim, SIM);
+            dnnsim:start_link(surf_sim, SIM),
+            dnnsim:set_threshold(surf_sim, 0.005);
         _ ->
-            print_run_error("dnn_surf")
+            print_run_error("surf_sim")
     end.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-% run process to resize images
-%
+%%--------------------------------------------------------------------
+%%
+%% run process to resize images
+%%
+%%--------------------------------------------------------------------
 run_resize(Json) ->
-    case jsonrpc:s(Json, dnn_resize) of
+    case jsonrpc:s(Json, resize) of
         Cmd when is_list(Cmd) ->
-            runcmd:start(resize, Cmd);
+            dnnresize:start_link(Cmd);
         _ ->
             print_run_error("dnn_resize")
     end.

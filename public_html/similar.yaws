@@ -1,0 +1,70 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta http-equiv="content-style-type" content="text/css"/>
+    <link rel="stylesheet" href="style.css" type="text/css"/>
+    <title>Tatsunokuchi DNN</title>
+  </head>
+  <body>
+    <div class="frame">
+      <h1 class="title">Tatsunokuchi DNN</h1>
+      the Distributed Nearest Neighbor system born in Tatsunokuchi
+    </div>
+
+    <div class="frame">
+      <erl>
+out(Arg) ->
+    case yaws_api:queryvar(Arg, "img") of
+        {ok, Img} ->
+            {html, io_lib:format("<a href=\"~s\"><img alt=\"~s\" src=\"~s\"/></a>", [Img, Img, Img])};
+        _ ->
+            {html, ""}
+    end.
+      </erl>
+    </div>
+
+    <div class="frame">
+      <h2>Similar Images by Color (Color Coherence Vector)</h2>
+      <erl>
+out(Arg) ->
+    case yaws_api:queryvar(Arg, "img") of
+        {ok, Img} ->
+            case dnnweb:get_hash_path() of
+                false ->
+                    {html, ""};
+                {Dir, Home} ->
+                    Files = dnnsim:find(ccv_sim,
+                                        [Dir, Home, Img, ".ccv.hist.dbh"],
+                                        [Dir, Home, Img, ".ccv.hist"]),
+                    {html, recent:file2img(Files, Img)}
+            end;
+        _ ->
+            {html, ""}
+    end.
+      </erl>
+    </div>
+
+    <div class="frame">
+      <h2>Similar Images by Shape (Speeded Up Robust Features)</h2>
+      <erl>
+out(Arg) ->
+    case yaws_api:queryvar(Arg, "img") of
+        {ok, Img} ->
+            case dnnweb:get_hash_path() of
+                false ->
+                    {html, ""};
+                {Dir, Home} ->
+                    Files = dnnsim:find(surf_sim,
+                                        [Dir, Home, Img, ".surf.hist.dbh"],
+                                        [Dir, Home, Img, ".surf.hist"]),
+                    {html, recent:file2img(Files, Img)}
+            end;
+        _ ->
+            {html, ""}
+    end.
+      </erl>
+    </div>
+  </body>
+</html>

@@ -4,6 +4,8 @@ h1.title { margin: 0px; }
 div.title { width: 90%; padding: 0px 8px; margin: 0px; }
 div.frame { width: 90%; padding: 8px; vertical-align: top; clear: both; }
 
+div.frame img { max-width: 800px; max-height: 600px; border-width: 0px; }
+
 div.image { float: left; padding: 0px; width: 150px; height: 150px;
             margin: 2px; text-align: center; }
 div.image img { max-width: 150px; max-height: 150px; border-width: 0px; }
