@@ -219,7 +219,7 @@ find_similar_hist(Port, Hist) ->
 recv_similar(Port, List) ->
     receive
         {Port, {data, {eol, "."}}} ->
-            List;
+            lists:reverse(List);
         {Port, {data, {eol, Data}}} ->
             Port ! {self(), {command, "next\n"}},
             recv_similar(Port, [Data | List])
