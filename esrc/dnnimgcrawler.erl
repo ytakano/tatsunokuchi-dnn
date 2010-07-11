@@ -15,7 +15,7 @@
 
 -define(IMG_DIR, "/images").
 -define(THUMB_DIR, "/thumbs").
--define(PATTERN, "^[^\\.]*\\.jpeg$|^[^\\.]*\\.jpg$|^[^\\.]*\\.jpe$|^[^\\.]*\\.png$|^[^\\.]*\\.bmp$|^[^\\.]*\\.dib$|^[^\\.]*\\.tiff$|^[^\\.]*\\.tif$|^[^\\.]*\\.pbm$|^[^\\.]*\\.pgm$|^[^\\.]*\\.ppm$)").
+-define(PATTERN, "^[^\\.]*\\.jpeg$|^[^\\.]*\\.jpg$|^[^\\.]*\\.jpe$|^[^\\.]*\\.png$|^[^\\.]*\\.bmp$|^[^\\.]*\\.dib$|^[^\\.]*\\.tiff$|^[^\\.]*\\.tif$|^[^\\.]*\\.pbm$|^[^\\.]*\\.pgm$|^[^\\.]*\\.ppm$").
 
 
 %% gen_server callbacks
