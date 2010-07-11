@@ -97,6 +97,7 @@ run_imgcrawler(Json) ->
     dnnenv:insert({dir, filename:absname(Feat)}),
 
     dnnimgcrawler:start_link(Feat, Home),
+    dnnimgcrawler:initialize(),
     dnnimgcrawler:update().
 
 %%--------------------------------------------------------------------

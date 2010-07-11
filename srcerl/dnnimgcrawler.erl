@@ -11,7 +11,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/2, update/0]).
+-export([start_link/2, update/0, initialize/0]).
 
 -define(IMG_DIR, "/images").
 -define(THUMB_DIR, "/thumbs").
@@ -38,6 +38,9 @@
 start_link(Dir, Home) ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, [Dir, Home], []).
 
+initialize() ->
+    gen_server:cast(?SERVER, init).
+
 update() ->
     gen_server:cast(?SERVER, update).
 
@@ -57,7 +60,6 @@ update() ->
 %% @end
 %%--------------------------------------------------------------------
 init([Dir, Home]) ->
-    init(Dir, Home),
     {ok, #state{dir = Dir, home = Home}}.
 
 %%--------------------------------------------------------------------
@@ -88,6 +90,9 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
+handle_cast(init, State) ->
+    init(State#state.dir, State#state.home),
+    {noreply, State};
 handle_cast(update, State) ->
     update(State#state.dir, State#state.home),
     {noreply, State};

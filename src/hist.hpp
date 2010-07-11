@@ -1,6 +1,8 @@
 #ifndef HIST_HPP
 #define HIST_HPP
 
+#include <stdint.h>
+
 #include <iostream>
 
 #include <boost/shared_array.hpp>
