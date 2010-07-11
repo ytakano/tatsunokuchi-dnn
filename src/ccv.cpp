@@ -200,11 +200,15 @@ ccv(cv::Mat &src, feature_ccv &ret)
 bool
 get_ccv_feat(const char *file, feature_ccv &feat)
 {
-        cv::Mat colorImage = cv::imread(file, 1);
-        if(colorImage.empty())
-                return false;
+        try {
+                cv::Mat colorImage = cv::imread(file, 1);
+                if(colorImage.empty())
+                        return false;
 
-        ccv(colorImage, feat);
+                ccv(colorImage, feat);
+        } catch (...) {
+                return false;
+        }
 
         return true;
 }

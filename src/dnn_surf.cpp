@@ -164,7 +164,14 @@ get_hist_path(const std::string &file, const char *dir)
 void
 create_hist(dnn::kmeans &km, const std::string &file, const char *dir)
 {
-        dnn::features_t feat = dnn::get_surf_feat(file.c_str());
+        dnn::features_t feat;
+
+        try {
+                feat = dnn::get_surf_feat(file.c_str());
+        } catch (...) {
+                std::cout << "false" << std::endl;
+                return;
+        }
 
         if (feat.get() == NULL) {
                 std::cout << "false" << std::endl;
@@ -221,7 +228,12 @@ create_conf(std::vector<std::string> &files, std::ostream &out)
         BOOST_FOREACH(std::string &c, files) {
                 std::cerr << "loading \"" << c << "\"..." << std::endl;
 
-                dnn::features_t feat = dnn::get_surf_feat(c.c_str());
+                dnn::features_t feat;
+                try {
+                        feat = dnn::get_surf_feat(c.c_str());
+                } catch (...) {
+                        continue;
+                }
 
                 if (feat.get() != NULL)
                         km.add_features(feat);
