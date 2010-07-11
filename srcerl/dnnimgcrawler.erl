@@ -15,6 +15,8 @@
 
 -define(IMG_DIR, "/images").
 -define(THUMB_DIR, "/thumbs").
+-define(PATTERN, "^[^\\.]*\\.jpeg$|^[^\\.]*\\.jpg$|^[^\\.]*\\.jpe$|^[^\\.]*\\.png$|^[^\\.]*\\.bmp$|^[^\\.]*\\.dib$|^[^\\.]*\\.tiff$|^[^\\.]*\\.tif$|^[^\\.]*\\.pbm$|^[^\\.]*\\.pgm$|^[^\\.]*\\.ppm$)").
+
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -147,9 +149,7 @@ update(Dir, Home) ->
                 gen_surf(File, Dir, Home)
         end,
 
-    Pat = "\\.jpeg$|\\.jpg$|\\.jpe$|\\.png$|\\.bmp$|\\.dib$|\\.tiff$|\\.tif$|\\.pbm$|\\.pgm$|\\.ppm$",%",
-
-    filelib:fold_files([Home, ?IMG_DIR], Pat, true, F, []).
+    filelib:fold_files([Home, ?IMG_DIR], ?PATTERN, true, F, []).
 
 gen_thumb(File, Home) ->
     FileRel = relative(filename:absname(File), filename:absname(Home)),
@@ -250,7 +250,5 @@ init(Dir, Home) ->
                 dnnsim:add(surf_sim, FileRel, SURFDBH, SURFHIST)
         end,
 
-    Pat = "\\.jpeg$|\\.jpg$|\\.jpe$|\\.png$|\\.bmp$|\\.dib$|\\.tiff$|\\.tif$|\\.pbm$|\\.pgm$|\\.ppm$",%",
-
-    filelib:fold_files([Home, ?IMG_DIR], Pat, true, F, []).
+    filelib:fold_files([Home, ?IMG_DIR], ?PATTERN, true, F, []).
 
