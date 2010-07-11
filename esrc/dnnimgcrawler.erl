@@ -15,7 +15,7 @@
 
 -define(IMG_DIR, "/images").
 -define(THUMB_DIR, "/thumbs").
--define(PATTERN, "^[^\\.]*\\.jpeg$|^[^\\.]*\\.jpg$|^[^\\.]*\\.jpe$|^[^\\.]*\\.png$|^[^\\.]*\\.bmp$|^[^\\.]*\\.dib$|^[^\\.]*\\.tiff$|^[^\\.]*\\.tif$|^[^\\.]*\\.pbm$|^[^\\.]*\\.pgm$|^[^\\.]*\\.ppm$").
+-define(PATTERN, "^[^\\.]*\\.jpeg$|^[^\\.]*\\.jpg$|^[^\\.]*\\.jpe$|^[^\\.]*\\.png$|^[^\\.]*\\.bmp$|^[^\\.]*\\.dib$|^[^\\.]*\\.tiff$|^[^\\.]*\\.tif$|^[^\\.]*\\.pbm$|^[^\\.]*\\.pgm$|^[^\\.]*\\.ppm$").%"
 
 
 %% gen_server callbacks
@@ -144,9 +144,13 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 update(Dir, Home) ->
     F = fun(File, _) ->
-                gen_thumb(File, Home),
-                gen_ccv(File, Dir, Home),
-                gen_surf(File, Dir, Home)
+                case gen_thumb(File, Home) of
+                    true ->
+                        gen_ccv(File, Dir, Home),
+                        gen_surf(File, Dir, Home);
+                    _ ->
+                        ok
+                end
         end,
 
     filelib:fold_files([Home, ?IMG_DIR], ?PATTERN, true, F, []).
@@ -164,7 +168,7 @@ gen_thumb(File, Home) ->
             Ref = dnnresize:resize(File, Thumb),
 
             receive
-                {resized, Ref} ->
+                {resized, Ref, true} ->
                     dnnfiles:add(FileRel, filelib:last_modified(File)),
                     true;
                 _ ->
@@ -242,12 +246,13 @@ init(Dir, Home) ->
 
                 FileRel = relative(FileAbs, filename:absname(Home)),
 
-                gen_thumb(File, Home),
-
-                dnnfiles:add(FileRel, filelib:last_modified(File)),
-
-                dnnsim:add(ccv_sim, FileRel, CCVDBH, CCVHIST),
-                dnnsim:add(surf_sim, FileRel, SURFDBH, SURFHIST)
+                case gen_thumb(File, Home) of
+                    true ->
+                        dnnsim:add(ccv_sim, FileRel, CCVDBH, CCVHIST),
+                        dnnsim:add(surf_sim, FileRel, SURFDBH, SURFHIST);
+                    _ ->
+                        ok
+                end
         end,
 
     filelib:fold_files([Home, ?IMG_DIR], ?PATTERN, true, F, []).

@@ -93,8 +93,8 @@ handle_call(_Request, _From, State) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_cast({resize, Src, Dst, PID, Ref}, State) ->
-    resize(State#state.port, Src, Dst),
-    PID ! {resized, Ref},
+    Result = resize(State#state.port, Src, Dst),
+    PID ! {resized, Ref, Result},
     {noreply, State};
 handle_cast(_Msg, State) ->
     {noreply, State}.

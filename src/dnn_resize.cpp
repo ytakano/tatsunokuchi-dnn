@@ -50,23 +50,30 @@ resize(const char *file, const char *thumb)
 {
         IplImage *img = NULL, *dst = NULL;
 
-        img = cvLoadImage(file, 1);
-        if (img == NULL)
+        try {
+                img = cvLoadImage(file, 1);
+                if (img == NULL)
+                        return false;
+
+                if (img->width > img->height) {
+                        double r = (double)MAX_WIDTH / (double)img->width;
+                        dst = cvCreateImage(cvSize(MAX_WIDTH, img->height * r),
+                                            IPL_DEPTH_8U, 3);
+                } else {
+                        double r = (double)MAX_HEIGHT / (double)img->height;
+                        dst = cvCreateImage(cvSize(img->width * r, MAX_HEIGHT),
+                                            IPL_DEPTH_8U, 3);
+                }
+
+                cvResize(img, dst, CV_INTER_CUBIC); 
+
+                cvSaveImage(thumb, dst);
+        } catch (...) {
+                cvReleaseImage(&img);
+                cvReleaseImage(&dst);
+
                 return false;
-
-        if (img->width > img->height) {
-                double r = (double)MAX_WIDTH / (double)img->width;
-                dst = cvCreateImage(cvSize(MAX_WIDTH, img->height * r),
-                                    IPL_DEPTH_8U, 3);
-        } else {
-                double r = (double)MAX_HEIGHT / (double)img->height;
-                dst = cvCreateImage(cvSize(img->width * r, MAX_HEIGHT),
-                                    IPL_DEPTH_8U, 3);
         }
-
-        cvResize(img, dst, CV_INTER_CUBIC); 
-
-        cvSaveImage(thumb, dst);
 
         cvReleaseImage(&img);
         cvReleaseImage(&dst);
