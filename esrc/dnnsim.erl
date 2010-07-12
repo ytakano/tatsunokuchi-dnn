@@ -11,7 +11,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/2, add/4, find/3, set_threshold/2]).
+-export([start_link/2, add/4, find/3, set_threshold/2, clear_cache/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -41,6 +41,9 @@ find(Server, Hash, Hist) ->
 
 set_threshold(Server, Threshold) ->
     gen_server:cast(Server, {threshold, Threshold}).
+
+clear_cache(Server) ->
+    gen_server:call(Server, clear_cache).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -84,6 +87,10 @@ init([Cmd]) ->
 %%--------------------------------------------------------------------
 handle_call({get, Hash, Hist}, _From, State) ->
     Reply = find_similar(State#state.port, State#state.cache, Hash, Hist),
+    {reply, Reply, State};
+handle_call(clear_cache, _From, State) ->
+    ets:delete_all_objects(State#state.cache),
+    Reply = ok,
     {reply, Reply, State};
 handle_call(_Request, _From, State) ->
     Reply = ok,
