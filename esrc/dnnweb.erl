@@ -23,6 +23,7 @@
                logdir, featdir,
                resize,
                ccv_hist, ccv_dbh, ccv_sim,
+               hog_hist, hog_dbh, hog_sim,
                surf_hist, surf_dbh, surf_sim}).
 
 
@@ -81,31 +82,47 @@ init([Conf]) ->
     Type = worker,
 
     Children = [
-                {tag1, {dnnenv, start_link, []},
+                {tag_env, {dnnenv, start_link, []},
                  Restart, Shutdown, Type, [dnnenv]},
 
-                {tag2, {dnnhist, start_link, [ccv_hist, Conf#conf.ccv_hist]},
+                {tag_ccv_hist, {dnnhist, start_link,
+                                [ccv_hist, Conf#conf.ccv_hist]},
                  Restart, Shutdown, Type, [dnnhist]},
-                {tag3, {dnndbh, start_link, [ccv_dbh, Conf#conf.ccv_dbh]},
+                {tag_ccv_dbh, {dnndbh, start_link,
+                               [ccv_dbh, Conf#conf.ccv_dbh]},
                  Restart, Shutdown, Type, [dnndbh]},
-                {tag4, {dnnsim, start_link, [ccv_sim, Conf#conf.ccv_sim]},
+                {tag_ccv_sim, {dnnsim, start_link,
+                               [ccv_sim, Conf#conf.ccv_sim]},
                  Restart, Shutdown, Type, [dnnsim]},
 
-                {tag5, {dnnhist, start_link, [surf_hist, Conf#conf.surf_hist]},
+                {tag_hog_hist, {dnnhist, start_link,
+                                [hog_hist, Conf#conf.hog_hist]},
                  Restart, Shutdown, Type, [dnnhist]},
-                {tag6, {dnndbh, start_link, [surf_dbh, Conf#conf.surf_dbh]},
+                {tag_hog_dbh, {dnndbh, start_link,
+                               [hog_dbh, Conf#conf.hog_dbh]},
                  Restart, Shutdown, Type, [dnndbh]},
-                {tag7, {dnnsim, start_link, [surf_sim, Conf#conf.surf_sim]},
+                {tag_hog_sim, {dnnsim, start_link,
+                               [hog_sim, Conf#conf.hog_sim]},
                  Restart, Shutdown, Type, [dnnsim]},
 
-                {tag8, {dnnfiles, start_link, []},
+                {tag_surf_hist, {dnnhist, start_link,
+                                 [surf_hist, Conf#conf.surf_hist]},
+                 Restart, Shutdown, Type, [dnnhist]},
+                {tag_surf_dbh, {dnndbh, start_link, [surf_dbh,
+                                                     Conf#conf.surf_dbh]},
+                 Restart, Shutdown, Type, [dnndbh]},
+                {tag_surf_sim, {dnnsim, start_link,
+                                [surf_sim, Conf#conf.surf_sim]},
+                 Restart, Shutdown, Type, [dnnsim]},
+
+                {tag_files, {dnnfiles, start_link, []},
                  Restart, Shutdown, Type, [dnnfiles]},
 
-                {tag9, {dnnimgcrawler, start_link,
-                        [Conf#conf.featdir, Conf#conf.home]},
+                {tag_crawler, {dnnimgcrawler, start_link,
+                               [Conf#conf.featdir, Conf#conf.home]},
                  Restart, Shutdown, Type, [dnnfiles]},
 
-                {tag10, {dnnrndimgs, start_link, []},
+                {tag_rndimgs, {dnnrndimgs, start_link, []},
                  Restart, Shutdown, Type, [dnnrndimgs]}
                ],
 
@@ -164,7 +181,40 @@ read_ccv_sim(Json, CCV, Conf) ->
         undefiled ->
             {error, "sim field is required in ccv"};
         CCV_Sim ->
-            read_surf(Json, Conf#conf{ccv_sim = CCV_Sim})
+            read_hog(Json, Conf#conf{ccv_sim = CCV_Sim})
+    end.
+
+%%--------------------------------------------------------------------
+read_hog(Json, Conf) ->
+    case jsonrpc:s(Json, hog) of
+        undefiled ->
+            {error, "hog field is undefined"};
+        Hog ->
+            read_hog_hist(Json, Hog, Conf)
+    end.
+
+read_hog_hist(Json, Hog, Conf) ->
+    case jsonrpc:s(Hog, hist) of
+        undefiled ->
+            {error, "hist field is required in hog"};
+        Hog_Hist ->
+            read_hog_dbh(Json, Hog, Conf#conf{hog_hist = Hog_Hist})
+    end.
+
+read_hog_dbh(Json, Hog, Conf) ->
+    case jsonrpc:s(Hog, dbh) of
+        undefiled ->
+            {error, "dbh field is required in hog"};
+        Hog_DBH ->
+            read_hog_sim(Json, Hog, Conf#conf{hog_dbh = Hog_DBH})
+    end.
+
+read_hog_sim(Json, Hog, Conf) ->
+    case jsonrpc:s(Hog, sim) of
+        undefiled ->
+            {error, "sim field is required in hog"};
+        Hog_Sim ->
+            read_surf(Json, Conf#conf{hog_sim = Hog_Sim})
     end.
 
 %%--------------------------------------------------------------------
@@ -256,6 +306,9 @@ start_link_with_conf(Conf) ->
 
             dnnenv:insert({home, filename:absname(Conf#conf.home)}),
             dnnenv:insert({dir, filename:absname(Conf#conf.featdir)}),
+
+            dnnsim:set_threshold(ccv_sim, 0.12),
+            dnnsim:set_threshold(surf_sim, 0.004),
 
             Ret;
         Ret ->

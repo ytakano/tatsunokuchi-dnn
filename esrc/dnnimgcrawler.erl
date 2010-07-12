@@ -146,8 +146,12 @@ update(Dir, Home) ->
     F = fun(File, _) ->
                 case gen_thumb(File, Home) of
                     true ->
-                        gen_ccv(File, Dir, Home),
-                        gen_surf(File, Dir, Home);
+                        gen_hist(ccv_hist, ccv_dbh, ccv_sim, File, Dir, Home,
+                                 ".ccv.hist"),
+                        gen_hist(hog_hist, hog_dbh, hog_sim, File, Dir, Home,
+                                 ".hog.hist"),
+                        gen_hist(surf_hist, surf_dbh, surf_sim, File, Dir, Home,
+                                 ".surf.hist");
                     _ ->
                         ok
                 end
@@ -187,42 +191,22 @@ get_dbh_hist(File, Dir, Suffix) ->
 
     {FileAbs, DBH, Hist}.
 
-gen_ccv(File, Dir, Home) ->
-    {FileAbs, DBH, Hist} = get_dbh_hist(File, Dir, ".ccv.hist"),
+gen_hist(Hist_PID, DBH_PID, SIM_PID, File, Dir, Home, Suffix) ->
+    {FileAbs, DBH, Hist} = get_dbh_hist(File, Dir, Suffix),
 
     FileTime = filelib:last_modified(File),
     DBHTime  = filelib:last_modified(DBH),
 
     if
         FileTime > DBHTime ->
-            Ref = dnnhist:create(ccv_hist, File),
+            Ref = dnnhist:create(Hist_PID, File),
             receive
                 {created_hist, Ref} ->
-                    dnndbh:create(ccv_dbh, Hist)
+                    dnndbh:create(DBH_PID, Hist)
             end,
 
             FileRel = relative(FileAbs, filename:absname(Home)),
-            dnnsim:add(ccv_sim, FileRel, DBH, Hist);
-        true ->
-            ok
-    end.
-
-gen_surf(File, Dir, Home) ->
-    {FileAbs, DBH, Hist} = get_dbh_hist(File, Dir, ".surf.hist"),
-
-    FileTime = filelib:last_modified(File),
-    DBHTime  = filelib:last_modified(DBH),
-
-    if
-        FileTime > DBHTime ->
-            Ref = dnnhist:create(surf_hist, File),
-            receive
-                {created_hist, Ref} ->
-                    dnndbh:create(surf_dbh, Hist)
-            end,
-
-            FileRel = relative(FileAbs, filename:absname(Home)),
-            dnnsim:add(surf_sim, FileRel, DBH, Hist);
+            dnnsim:add(SIM_PID, FileRel, DBH, Hist);
         true ->
             ok
     end.
@@ -239,9 +223,11 @@ init(Dir, Home) ->
                 DirAbs  = filename:absname(Dir),
 
                 CCVDBH  = [DirAbs, FileAbs, ".ccv.hist.dbh"],
+                HOGDBH  = [DirAbs, FileAbs, ".hog.hist.dbh"],
                 SURFDBH = [DirAbs, FileAbs, ".surf.hist.dbh"],
 
                 CCVHIST  = [DirAbs, FileAbs, ".ccv.hist"],
+                HOGHIST  = [DirAbs, FileAbs, ".hog.hist"],
                 SURFHIST = [DirAbs, FileAbs, ".surf.hist"],
 
                 FileRel = relative(FileAbs, filename:absname(Home)),
@@ -249,10 +235,17 @@ init(Dir, Home) ->
                 case gen_thumb(File, Home) of
                     true ->
                         dnnfiles:add(FileRel, filelib:last_modified(File)),
+
                         dnnsim:add(ccv_sim, FileRel, CCVDBH, CCVHIST),
+                        dnnsim:add(hog_sim, FileRel, HOGDBH, HOGHIST),
                         dnnsim:add(surf_sim, FileRel, SURFDBH, SURFHIST),
-                        gen_ccv(File, Dir, Home),
-                        gen_surf(File, Dir, Home);
+
+                        gen_hist(ccv_hist, ccv_dbh, ccv_sim, File, Dir, Home,
+                                 ".ccv.hist"),
+                        gen_hist(hog_hist, hog_dbh, hog_sim, File, Dir, Home,
+                                 ".hog.hist"),
+                        gen_hist(surf_hist, surf_dbh, surf_sim, File, Dir, Home,
+                                 ".surf.hist");
                     _ ->
                         ok
                 end

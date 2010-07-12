@@ -47,6 +47,27 @@ out(Arg) ->
     </div>
 
     <div class="frame">
+      <h2>Similar Images by Shape (Histgram of Oriented Gradients)</h2>
+      <erl>
+out(Arg) ->
+    case yaws_api:queryvar(Arg, "img") of
+        {ok, Img} ->
+            case dnnweb:get_hash_path() of
+                false ->
+                    {html, ""};
+                {Dir, Home} ->
+                    Files = dnnsim:find(hog_sim,
+                                        [Dir, Home, Img, ".hog.hist.dbh"],
+                                        [Dir, Home, Img, ".hog.hist"]),
+                    {html, recent:file2img(Files, Img)}
+            end;
+        _ ->
+            {html, ""}
+    end.
+      </erl>
+    </div>
+
+    <div class="frame">
       <h2>Similar Images by Shape (Speeded Up Robust Features)</h2>
       <erl>
 out(Arg) ->
