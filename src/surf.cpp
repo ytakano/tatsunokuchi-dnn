@@ -20,6 +20,9 @@ get_surf_feat(const char *file)
         cv::Mat grayImage;
         cv::cvtColor(colorImage, grayImage, CV_BGR2GRAY);
 
+        if (grayImage.empty())
+                return features_t();
+
         // (3)initialize SURF class
         cv::SURF calc_surf = cv::SURF(500, 4, 2, true);
 

@@ -248,8 +248,11 @@ init(Dir, Home) ->
 
                 case gen_thumb(File, Home) of
                     true ->
+                        dnnfiles:add(FileRel, filelib:last_modified(File)),
                         dnnsim:add(ccv_sim, FileRel, CCVDBH, CCVHIST),
-                        dnnsim:add(surf_sim, FileRel, SURFDBH, SURFHIST);
+                        dnnsim:add(surf_sim, FileRel, SURFDBH, SURFHIST),
+                        gen_ccv(File, Dir, Home),
+                        gen_surf(File, Dir, Home);
                     _ ->
                         ok
                 end

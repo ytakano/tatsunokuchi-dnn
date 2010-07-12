@@ -1,19 +1,34 @@
+%%%-------------------------------------------------------------------
+%%% @author ytakano <ytakano@mementomori.local>
+%%% @copyright (C) 2010, ytakano
+%%% @doc
+%%%
+%%% @end
+%%% Created : 12 Jul 2010 by ytakano <ytakano@mementomori.local>
+%%%-------------------------------------------------------------------
 -module(dnnweb).
--export([start/1, get_hash_path/0]).
 
-start([Conf]) ->
-    dnnenv:start_link(),
+-behaviour(supervisor).
 
-    Json = open_json(Conf),
+%% API
+-export([start_link/1, get_hash_path/0]).
 
-    run_ccv(Json),
-    run_surf(Json),
-    run_resize(Json),
-    run_yaws(Json),
-    dnnfiles:start_link(),
-    run_imgcrawler(Json),
-    dnnrndimgs:start_link().
+%% Supervisor callbacks
+-export([init/1]).
 
+-define(SERVER, ?MODULE).
+
+-record(conf, {home,
+               port = 7100,
+               logdir, featdir,
+               resize,
+               ccv_hist, ccv_dbh, ccv_sim,
+               surf_hist, surf_dbh, surf_sim}).
+
+
+%%%===================================================================
+%%% API functions
+%%%===================================================================
 get_hash_path() ->
     case ets:lookup(env, home) of
         [{home, Home}] ->
@@ -26,175 +41,223 @@ get_hash_path() ->
         _ ->
             false
     end.
-    
+
 %%--------------------------------------------------------------------
+%% @doc
+%% Starts the supervisor
+%%
+%% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
+%% @end
+%%--------------------------------------------------------------------
+start_link([Conf]) ->
+    open_json(Conf).
+
+%%%===================================================================
+%%% Supervisor callbacks
+%%%===================================================================
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Whenever a supervisor is started using supervisor:start_link/[2,3],
+%% this function is called by the new process to find out about
+%% restart strategy, maximum restart frequency and child
+%% specifications.
+%%
+%% @spec init(Args) -> {ok, {SupFlags, [ChildSpec]}} |
+%%                     ignore |
+%%                     {error, Reason}
+%% @end
+%%--------------------------------------------------------------------
+init([Conf]) ->
+    RestartStrategy = one_for_one,
+    MaxRestarts = 1000,
+    MaxSecondsBetweenRestarts = 3600,
+
+    SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
+
+    Restart = permanent,
+    Shutdown = 2000,
+    Type = worker,
+
+    Children = [
+                {tag1, {dnnenv, start_link, []},
+                 Restart, Shutdown, Type, [dnnenv]},
+
+                {tag2, {dnnhist, start_link, [ccv_hist, Conf#conf.ccv_hist]},
+                 Restart, Shutdown, Type, [dnnhist]},
+                {tag3, {dnndbh, start_link, [ccv_dbh, Conf#conf.ccv_dbh]},
+                 Restart, Shutdown, Type, [dnndbh]},
+                {tag4, {dnnsim, start_link, [ccv_sim, Conf#conf.ccv_sim]},
+                 Restart, Shutdown, Type, [dnnsim]},
+
+                {tag5, {dnnhist, start_link, [surf_hist, Conf#conf.surf_hist]},
+                 Restart, Shutdown, Type, [dnnhist]},
+                {tag6, {dnndbh, start_link, [surf_dbh, Conf#conf.surf_dbh]},
+                 Restart, Shutdown, Type, [dnndbh]},
+                {tag7, {dnnsim, start_link, [surf_sim, Conf#conf.surf_sim]},
+                 Restart, Shutdown, Type, [dnnsim]},
+
+                {tag8, {dnnfiles, start_link, []},
+                 Restart, Shutdown, Type, [dnnfiles]},
+
+                {tag9, {dnnimgcrawler, start_link,
+                        [Conf#conf.featdir, Conf#conf.home]},
+                 Restart, Shutdown, Type, [dnnfiles]},
+
+                {tag10, {dnnrndimgs, start_link, []},
+                 Restart, Shutdown, Type, [dnnrndimgs]}
+               ],
+
+    {ok, {SupFlags, Children}}.
+
+%%%===================================================================
+%%% Internal functions
+%%%===================================================================
 open_json(Conf) ->
     try file:read_file(Conf) of
         {ok, Str} ->
             StrList = binary_to_list(Str),
             try json:decode_string(StrList) of
                 {ok, Json} ->
-                    Json;
+                    read_ccv(Json);
                 _ ->
-                    io:format("invalid config file\n"),
-                    exit({dnnweb, stopped})
+                    {error, "invalid config file\n"}
             catch
                 _:W ->
-                    io:format("internal error : catched '~p' when parsing\n~s\n",
-                              [W, StrList]),
-                    exit({dnnweb, stopped})
+                    {error, W}
             end;
         _ ->
-            io:format("failed to open \"~s\"", [Conf]),
-            exit({dnnweb, stopped})
+            {error, "failed to open"}
     catch
         _:W ->
-            io:format("internal error: catched '~p' when reading '~s'\n",
-                      [W, Conf]),
-            exit({dnnweb, stopped})
+            {error, W}
     end.
 
 %%--------------------------------------------------------------------
-run_yaws(Json) ->
-    Home = case jsonrpc:s(Json, home) of
-               H when is_list(H) ->
-                   H;
-               _ ->
-                   "public_html"
-           end,
-
-    Port = case jsonrpc:s(Json, port) of
-               P when is_integer(P) ->
-                   P;
-               _ ->
-                   7100
-           end,
-
-    case jsonrpc:s(Json, logdir) of
-        Dir when is_list(Dir) ->
-            yaws:start_embedded(Home, [{port, Port}], [{logdir, Dir}]);
-        _ ->
-            yaws:start_embedded(Home, [{port, Port}])
-    end.
-
-%%--------------------------------------------------------------------
-run_imgcrawler(Json) ->
-    Home = case jsonrpc:s(Json, home) of
-               H when is_list(H) ->
-                   H;
-               _ ->
-                   "public_html"
-           end,
-
-    Feat = case jsonrpc:s(Json, featdir) of
-               F when is_list(F) ->
-                   F;
-               _ ->
-                   "features"
-           end,
-
-    dnnenv:insert({home, filename:absname(Home)}),
-    dnnenv:insert({dir, filename:absname(Feat)}),
-
-    dnnimgcrawler:start_link(Feat, Home),
-    dnnimgcrawler:initialize(),
-    dnnimgcrawler:update().
-
-%%--------------------------------------------------------------------
-print_run_error(Cmd) ->
-    io:format("cannot run ~s\n", [Cmd]).
-
-
-%%--------------------------------------------------------------------
-%%
-%% run process to find similar objects by using the color coherence vector
-%%
-%%--------------------------------------------------------------------
-run_ccv(Json) ->
+read_ccv(Json) ->
     case jsonrpc:s(Json, ccv) of
         undefiled ->
-            print_run_error("dnn_ccv");
-        J ->
-            run_ccv_hist(J),
-            run_ccv_dbh(J),
-            run_ccv_sim(J)
+            {error, "ccv field is undefined"};
+        CCV ->
+            read_ccv_hist(Json, CCV)
     end.
 
-run_ccv_hist(Json) ->
-    case jsonrpc:s(Json, hist) of
-        Hist when is_list(Hist) ->
-            dnnhist:start_link(ccv_hist, Hist);
-        _ ->
-            print_run_error("ccv_hist")
+read_ccv_hist(Json, CCV) ->
+    case jsonrpc:s(CCV, hist) of
+        undefiled ->
+            {error, "hist field is required in ccv"};
+        CCV_Hist ->
+            read_ccv_dbh(Json, CCV, #conf{ccv_hist = CCV_Hist})
     end.
 
-run_ccv_dbh(Json) ->
-    case jsonrpc:s(Json, dbh) of
-        DBH when is_list(DBH) ->
-            dnndbh:start_link(ccv_dbh, DBH);
-        _ ->
-            print_run_error("ccv_dbh")
+read_ccv_dbh(Json, CCV, Conf) ->
+    case jsonrpc:s(CCV, dbh) of
+        undefiled ->
+            {error, "dbh field is required in ccv"};
+        CCV_DBH ->
+            read_ccv_sim(Json, CCV, Conf#conf{ccv_dbh = CCV_DBH})
     end.
 
-run_ccv_sim(Json) ->
-    case jsonrpc:s(Json, sim) of
-        SIM when is_list(SIM) ->
-            dnnsim:start_link(ccv_sim, SIM),
-            dnnsim:set_threshold(ccv_sim, 0.15);
-        _ ->
-            print_run_error("ccv_sim")
+read_ccv_sim(Json, CCV, Conf) ->
+    case jsonrpc:s(CCV, sim) of
+        undefiled ->
+            {error, "sim field is required in ccv"};
+        CCV_Sim ->
+            read_surf(Json, Conf#conf{ccv_sim = CCV_Sim})
     end.
-
 
 %%--------------------------------------------------------------------
-%%
-%% run process to find similar objects by using the SURF
-%%
-%%--------------------------------------------------------------------
-run_surf(Json) ->
+read_surf(Json, Conf) ->
     case jsonrpc:s(Json, surf) of
         undefiled ->
-            print_run_error("dnn_surf");
-        J ->
-            run_surf_hist(J),
-            run_surf_dbh(J),
-            run_surf_sim(J)
+            {error, "surf field is undefined"};
+        Surf ->
+            read_surf_hist(Json, Surf, Conf)
     end.
 
-run_surf_hist(Json) ->
-    case jsonrpc:s(Json, hist) of
-        Hist when is_list(Hist) ->
-            dnnhist:start_link(surf_hist, Hist);
-        _ ->
-            print_run_error("surf_hist")
+read_surf_hist(Json, Surf, Conf) ->
+    case jsonrpc:s(Surf, hist) of
+        undefiled ->
+            {error, "hist field is required in surf"};
+        SURF_Hist ->
+            read_surf_dbh(Json, Surf, Conf#conf{surf_hist = SURF_Hist})
     end.
 
-run_surf_dbh(Json) ->
-    case jsonrpc:s(Json, dbh) of
-        DBH when is_list(DBH) ->
-            dnndbh:start_link(surf_dbh, DBH);
-        _ ->
-            print_run_error("surf_dbh")
+read_surf_dbh(Json, Surf, Conf) ->
+    case jsonrpc:s(Surf, dbh) of
+        undefiled ->
+            {error, "dbh field is required in surf"};
+        SURF_DBH ->
+            read_surf_sim(Json, Surf, Conf#conf{surf_dbh = SURF_DBH})
     end.
 
-run_surf_sim(Json) ->
-    case jsonrpc:s(Json, sim) of
-        SIM when is_list(SIM) ->
-            dnnsim:start_link(surf_sim, SIM),
-            dnnsim:set_threshold(surf_sim, 0.005);
-        _ ->
-            print_run_error("surf_sim")
+read_surf_sim(Json, Surf, Conf) ->
+    case jsonrpc:s(Surf, sim) of
+        undefiled ->
+            {error, "sim field is required in surf"};
+        SURF_Sim ->
+            read_home(Json, Conf#conf{surf_sim = SURF_Sim})
     end.
 
 %%--------------------------------------------------------------------
-%%
-%% run process to resize images
-%%
+read_home(Json, Conf) ->
+    case jsonrpc:s(Json, home) of
+        undefiled ->
+            {error, "home field is undefined"};
+        Home ->
+            read_featdir(Json, Conf#conf{home = Home})
+    end.
+
 %%--------------------------------------------------------------------
-run_resize(Json) ->
+read_featdir(Json, Conf) ->
+    case jsonrpc:s(Json, featdir) of
+        undefiled ->
+            {error, "featdir field is undefined"};
+        Dir ->
+            read_logdir(Json, Conf#conf{featdir = Dir})
+    end.
+
+%%--------------------------------------------------------------------
+read_logdir(Json, Conf) ->
+    case jsonrpc:s(Json, logdir) of
+        undefiled ->
+            {error, "logdir field is undefined"};
+        Dir ->
+            read_port(Json, Conf#conf{logdir = Dir})
+    end.
+
+%%--------------------------------------------------------------------
+read_port(Json, Conf) ->
+    case jsonrpc:s(Json, port) of
+        undefiled ->
+            read_resize(Json, Conf);
+        Port ->
+            read_resize(Json, Conf#conf{port = Port})
+    end.
+
+%%--------------------------------------------------------------------
+read_resize(Json, Conf) ->
     case jsonrpc:s(Json, resize) of
-        Cmd when is_list(Cmd) ->
-            dnnresize:start_link(Cmd);
-        _ ->
-            print_run_error("dnn_resize")
+        undefiled ->
+            {error, "resize field is undefined"};
+        Resize ->
+            start_link_with_conf(Conf#conf{resize = Resize})
+    end.
+
+%%--------------------------------------------------------------------
+start_link_with_conf(Conf) ->
+    case supervisor:start_link({local, ?SERVER}, ?MODULE, [Conf]) of
+        {ok, _} = Ret ->
+            dnnimgcrawler:initialize(),
+
+            yaws:start_embedded(Conf#conf.home, [{port, Conf#conf.port},
+                                                 {listen, {0, 0, 0, 0}}]),
+
+            dnnenv:insert({home, filename:absname(Conf#conf.home)}),
+            dnnenv:insert({dir, filename:absname(Conf#conf.featdir)}),
+
+            Ret;
+        Ret ->
+            Ret
     end.
