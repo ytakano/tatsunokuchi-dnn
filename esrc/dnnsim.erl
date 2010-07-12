@@ -34,7 +34,7 @@ start_link(Server, Cmd) ->
     gen_server:start_link({local, Server}, ?MODULE, [Cmd], []).
 
 add(Server, Str, Hash, Hist) ->
-    gen_server:cast(Server, {add, Str, Hash, Hist}).
+    gen_server:call(Server, {add, Str, Hash, Hist}).
 
 find(Server, Hash, Hist) ->
     gen_server:call(Server, {get, Hash, Hist}).
@@ -85,6 +85,10 @@ init([Cmd]) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
+handle_call({add, Str, Hash, Hist}, _From, State) ->
+    insert(State#state.port, Str, Hash, Hist),
+    Reply = ok,
+    {reply, Reply, State};
 handle_call({get, Hash, Hist}, _From, State) ->
     Reply = find_similar(State#state.port, State#state.cache, Hash, Hist),
     {reply, Reply, State};
@@ -106,9 +110,6 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_cast({add, Str, Hash, Hist}, State) ->
-    insert(State#state.port, Str, Hash, Hist),
-    {noreply, State};
 handle_cast({threshold, Threshold}, State) ->
     set_threshold_in(State#state.port, Threshold),
     {noreply, State};
