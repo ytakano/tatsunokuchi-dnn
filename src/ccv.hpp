@@ -3,19 +3,22 @@
 
 #include <opencv/cv.h>
 
-#define NUM_CCV_COLOR (3 * 3 * 3)
+#include <boost/shared_array.hpp>
+
+#define NUM_CCV_COLOR (4 * 4 * 4)
 
 namespace dnn {
 
 struct feature_ccv {
-        float alpha[NUM_CCV_COLOR];
-        float beta[NUM_CCV_COLOR];
+        typedef boost::shared_array<float> float_arr;
+        float_arr m_alpha;
+        float_arr m_beta;
 };
 
 class error_read_ccv { };
 
-// color coherence vector
-void ccv(cv::Mat &src, feature_ccv &ret);
+// colour coherence vector
+void ccv(const cv::Mat &src, feature_ccv &ret);
 bool get_ccv_feat(const char *file, feature_ccv &feat);
 
 std::ostream& operator<< (std::ostream &out, const feature_ccv &feat);

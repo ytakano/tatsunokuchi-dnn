@@ -93,8 +93,10 @@ lshforest::get_similar(std::vector<std::string> &str, hash_t &hash,
         for (it_t it = str_set.begin(); it != str_set.end(); ++it) {
                 str_info info = m_str2hash[it->first];
 
+/*
                 if (it->second < m_num_tree / 2)
                         continue;
+*/
 
                 str_dist dist;
                 std::ifstream ifs(info.m_hist_file.c_str());
