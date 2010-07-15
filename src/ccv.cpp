@@ -34,6 +34,11 @@ static const char *head = "histgram";
 union rgb {
         uint32_t m_color32;
         uint8_t  m_color8[4];
+
+        bool operator== (const rgb &rhs) const
+        {
+                return m_color32 == rhs.m_color32;
+        }
 };
 
 struct label_info {
@@ -42,6 +47,9 @@ struct label_info {
         uint32_t m_alias;
 };
 
+//#define ccv_width 240
+//#define ccv_height 160
+//#define t_ccv 25
 static const int ccv_width  = 240;
 static const int ccv_height = 160;
 static const int t_ccv = 25;
@@ -154,102 +162,94 @@ ccv(const cv::Mat &src, feature_ccv &ret)
         }
 
         for (y = 1; y < ccv_height; y++) {
-                rgb color_here, color_above, color_left;
+                rgb c_here, c_left, c_above, c_above_l, c_above_r;
                 for (x = 0; x < ccv_width; x++) {
-                        get_rgb(color_here,  resized, x, y);
-                        get_rgb(color_above, resized, x, y - 1);
+                        get_rgb(c_here, resized, x, y);
 
                         if (x == 0) {
-                                if (color_here.m_color32 ==
-                                    color_above.m_color32) {
-                                        uint32_t l;
-
-                                        l = labeled[x + (y - 1) * ccv_width];
-                                        l = find_label(l, labels);
-
-                                        labeled[x + y * ccv_width] = l;
-
-                                        labels[l].m_count++;
-                                } else {
-                                        label++;
-                                        labeled[x + y * ccv_width] = label;
-
-                                        info.m_color = color_here;
-                                        info.m_alias = label;
-                                        info.m_count = 1;
-
-                                        labels[label] = info;
-                                }
-                        } else {
-                                get_rgb(color_left, resized, x - 1, y);
-
-                                if (color_here.m_color32 ==
-                                    color_above.m_color32 &&
-                                    color_here.m_color32 ==
-                                    color_left.m_color32) {
-                                        boost::unordered_map<uint32_t, label_info>::iterator it;
-                                        int label_above, label_left;
-
-                                        label_above = labeled[x + (y - 1) * ccv_width];
-                                        label_above = find_label(label_above,
-                                                                 labels);
-
-
-                                        label_left = labeled[x - 1 + y * ccv_width];
-                                        label_left = find_label(label_left,
-                                                                labels);
-
-                                        if (label_above == label_left) {
-                                                labeled[x + y * ccv_width] = label_above;
-                                                labels[label_above].m_count++;
-                                        } else if (label_above < label_left) {
-                                                labeled[x + y * ccv_width] = label_above;
-
-                                                it = labels.find(label_left);
-                                                labels[label_above].m_count += it->second.m_count + 1;
-                                                it->second.m_alias = label_above;
-                                                it->second.m_count = 0;
-                                        } else {
-                                                labeled[x + y * ccv_width] = label_left;
-                                                it = labels.find(label_above);
-                                                labels[label_left].m_count += it->second.m_count + 1;
-                                                it->second.m_alias = label_left;
-                                                it->second.m_count = 0;
-                                        }
-                                } else if (color_here.m_color32 ==
-                                           color_above.m_color32) {
-                                        int l;
-
-                                        l = labeled[x + (y - 1) * ccv_width];
-                                        l = find_label(l, labels);
-
-                                        labeled[x + y * ccv_width] = l;
-
-                                        labels[l].m_count++;
-                                } else if (color_here.m_color32 ==
-                                           color_left.m_color32) {
-                                        int l;
-
-                                        l = labeled[x - 1 + y * ccv_width];
-                                        l = find_label(l, labels);
-
-                                        labeled[x + y * ccv_width] = l;
-
-                                        labels[l].m_count++;
-                                } else {
-                                        label++;
-                                        labeled[x + y * ccv_width] = label;
-
-                                        info.m_color = color_here;
-                                        info.m_alias = label;
-                                        info.m_count = 1;
-
-                                        labels[label] = info;
-                                }
+                                c_left.m_color32    = 0xffffffff;
+                                c_above_l.m_color32 = 0xffffffff;
                         }
 
-                        color_left = color_here;
+                        if (x + 1 < ccv_width)
+                                get_rgb(c_above_r, resized, x + 1, y - 1);
+                        else
+                                c_above_r.m_color32 = 0xffffffff;
+
+                        get_rgb(c_above, resized, x, y - 1);
+
+
+                        uint32_t same[4];
+                        uint32_t l;
+                        int      num_same = 0;
+
+                        if (c_here == c_left) {
+                                l = labeled[x - 1 + y * ccv_width];
+                                same[num_same] = find_label(l, labels);
+                                num_same++;
+                        }
+
+                        if (c_here == c_above) {
+                                l = labeled[x + (y - 1) * ccv_width];
+                                same[num_same] = find_label(l, labels);
+                                num_same++;
+                        }
+
+                        if (c_here == c_above_l) {
+                                l = labeled[x - 1 + (y - 1) * ccv_width];
+                                same[num_same] = find_label(l, labels);
+                                num_same++;
+                        }
+
+                        if (c_here == c_above_r) {
+                                l = labeled[x + 1 + (y - 1) * ccv_width];
+                                same[num_same] = find_label(l, labels);
+                                num_same++;
+                        }
+
+                        if (num_same > 0) {
+                                boost::unordered_map<uint32_t,
+                                        label_info>::iterator it1, it2;
+                                uint32_t label_min = same[0];
+
+                                for (i = 1; i < num_same; i++) {
+                                        if (same[i] < label_min) {
+                                                label_min = same[i];
+                                        }
+                                }
+
+                                it1 = labels.find(label_min);
+                                it1->second.m_count++;
+
+                                for (i = 0; i < num_same; i++) {
+                                        if (label_min < same[i]) {
+                                                it2 = labels.find(same[i]);
+
+                                                int count = it1->second.m_count;
+
+                                                it2->second.m_alias = label_min;
+                                                it2->second.m_count = 0;
+
+                                                it1->second.m_count += count;
+                                        }
+                                }
+
+                                labeled[x + y * ccv_width] = label_min;
+                        } else {
+                                label++;
+                                labeled[x + y * ccv_width] = label;
+
+                                info.m_color = c_here;
+                                info.m_alias = label;
+                                info.m_count = 1;
+
+                                labels[label] = info;
+                        }
                 }
+
+                c_left    = c_here;
+                c_above   = c_above_r;
+                c_above_l = c_above;
         }
 
         boost::unordered_map<uint32_t, label_info>::iterator it;
