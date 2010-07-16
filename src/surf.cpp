@@ -8,6 +8,9 @@
 
 namespace dnn {
 
+static const int surf_width  = 240;
+static const int surf_height = 160;
+
 features_t
 get_surf_feat(const char *file)
 {
@@ -16,12 +19,19 @@ get_surf_feat(const char *file)
         if(colorImage.empty())
                 return features_t();
 
+        cv::Mat resized;
+        cv::resize(colorImage, resized, cv::Size(surf_width, surf_height));
+
+        colorImage.release();
+
         // (2)convert Color Image to Grayscale for Feature Extraction
         cv::Mat grayImage;
-        cv::cvtColor(colorImage, grayImage, CV_BGR2GRAY);
+        cv::cvtColor(resized, grayImage, CV_BGR2GRAY);
 
         if (grayImage.empty())
                 return features_t();
+
+        resized.release();
 
         // (3)initialize SURF class
         cv::SURF calc_surf = cv::SURF(500, 4, 2, true);

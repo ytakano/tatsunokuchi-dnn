@@ -18,7 +18,7 @@ namespace po = boost::program_options;
 void create_conf(std::vector<std::string> &files, std::ostream &out,
                  uint32_t dim, uint32_t tables);
 bool read_conf(dnn::dbh &dbh, std::string conf);
-bool read_hist(dnn::histgram &hist, std::string file);
+bool read_hist(dnn::hist &hs, std::string file);
 void create_dbh(dnn::dbh &dbh, const std::string &file, const char *dir);
 fs::path get_dbh_path(const std::string &file, const char *dir);
 
@@ -45,7 +45,7 @@ main(int argc, char *argv[])
                          "name of a config file to be outputted.\n"
                          "configuration is outputted to the stdout if ommited")
                         ("num-dimension,n", po::value<uint32_t>(),
-                         "the number of dimension of histgrams")
+                         "the number of dimension of histograms")
                         ("tables,t", po::value<uint32_t>(),
                          "the number of hash tables");
 
@@ -84,7 +84,7 @@ main(int argc, char *argv[])
 
                 if (vm.count("create-config")) {
                         if (! vm.count("input-file")) {
-                                std::cout << "error: no histgram files!"
+                                std::cout << "error: no histogram files!"
                                           << std::endl;
                                 return -1;
                         }
@@ -180,9 +180,9 @@ main(int argc, char *argv[])
 void
 create_dbh(dnn::dbh &dbh, const std::string &file, const char *dir)
 {
-        dnn::histgram hist;
+        dnn::hist hs;
 
-        if (! read_hist(hist, file.c_str())) {
+        if (! read_hist(hs, file.c_str())) {
                 std::cout << "false" << std::endl;
                 return;
         }
@@ -190,10 +190,10 @@ create_dbh(dnn::dbh &dbh, const std::string &file, const char *dir)
 
         dnn::hash_t  hash;
 
-        if (hist.m_dim != (uint32_t)dbh.get_dim())
+        if (hs.m_dim != (uint32_t)dbh.get_dim())
                 return;
 
-        dbh.get_hash(hash, hist.m_hist);
+        dbh.get_hash(hash, hs.m_hist);
 
         fs::path path = get_dbh_path(file, dir);
 
@@ -249,7 +249,7 @@ get_dbh_path(const std::string &file, const char *dir)
 }
 
 bool
-read_hist(dnn::histgram &hist, std::string file)
+read_hist(dnn::hist &hs, std::string file)
 {
         std::ifstream in(file.c_str());
 
@@ -257,7 +257,7 @@ read_hist(dnn::histgram &hist, std::string file)
                 return false;
 
         try {
-                in >> hist;
+                in >> hs;
         } catch (...) {
                 return false;
         }
@@ -278,13 +278,13 @@ create_conf(std::vector<std::string> &files, std::ostream &out, uint32_t dim,
         BOOST_FOREACH(const std::string &c, files) {
                 std::cerr << "loading \"" << c << "\"..." << std::endl;
 
-                dnn::histgram hist;
+                dnn::hist hs;
 
-                if (! read_hist(hist, c))
+                if (! read_hist(hs, c))
                         continue;
 
-                if (hist.m_dim == dim)
-                        dbh.add_hist(hist.m_hist);
+                if (hs.m_dim == dim)
+                        dbh.add_hist(hs.m_hist);
         }
 
         dbh.build_pivot();

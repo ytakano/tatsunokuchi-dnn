@@ -41,14 +41,14 @@ main(int argc, char *argv[])
                          "name of a config file to be outputted.\n"
                          "configuration is outputted to the stdout if ommited");
 
-                po::options_description createhist("options for creating histgram files");
+                po::options_description createhist("options for creating histogram files");
 
                 createhist.add_options()
                         ("read-config,r", po::value<std::string>(),
                          "read a config file")
                         ("dir,d", po::value<std::string>(),
-                         "directory to save histgram files.\n"
-                         "histgram files are saved to same directory of original files if ommited");
+                         "directory to save histogram files.\n"
+                         "histogram files are saved to same directory of original files if ommited");
 
                 po::options_description hidden("Hidden options");
                 hidden.add_options()
@@ -179,7 +179,7 @@ create_hist(dnn::kmeans &km, const std::string &file, const char *dir)
         }
 
 
-        dnn::histgram hist = km.get_hist(feat);
+        dnn::hist hs = km.get_hist(feat);
 
         fs::path path = get_hist_path(file, dir);
 
@@ -193,11 +193,15 @@ create_hist(dnn::kmeans &km, const std::string &file, const char *dir)
                 return;
         }
 
-        ofile << hist;
+        ofile << hs;
 
         ofile.close();
 
         std::cout << path.string() << std::endl;
+
+        for (int i = 0; i < hs.m_dim; i++) {
+                std::cout << i << ": " << hs.m_hist[i] << std::endl;
+        }
 }
 
 bool
@@ -224,6 +228,7 @@ create_conf(std::vector<std::string> &files, std::ostream &out)
         dnn::kmeans km;
 
         km.set_dim(128);
+        km.set_depth(8);
 
         BOOST_FOREACH(std::string &c, files) {
                 std::cerr << "loading \"" << c << "\"..." << std::endl;

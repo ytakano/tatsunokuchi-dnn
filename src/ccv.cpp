@@ -47,9 +47,6 @@ struct label_info {
         uint32_t m_alias;
 };
 
-//#define ccv_width 240
-//#define ccv_height 160
-//#define t_ccv 25
 static const int ccv_width  = 240;
 static const int ccv_height = 160;
 static const int t_ccv = 25;
@@ -146,7 +143,7 @@ ccv(const cv::Mat &src, feature_ccv &ret)
                 get_rgb(color_here, resized, x,     0);
                 get_rgb(color_left, resized, x - 1, 0);
 
-                if (color_here.m_color32 == color_left.m_color32) {
+                if (color_here == color_left) {
                         labels[label].m_count++;
                         labeled[x] = label;
                 } else {

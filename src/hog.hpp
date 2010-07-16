@@ -5,7 +5,7 @@
 
 namespace dnn {
 
-histgram get_hog_feat(const char *file);
+hist get_hog_feat(const char *file);
 
 }
 

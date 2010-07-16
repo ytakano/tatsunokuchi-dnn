@@ -7,10 +7,10 @@ CXXFLAGS += -Wall -O3 -funroll-loops
 LDFLAGS += -lcv -lcxcore -lhighgui -lboost_system -lboost_filesystem -lboost_program_options -ltcmalloc
 
 SRC[] =
+	hist
 	ccv
 	lshforest
 	dbh
-	hist
 	kmeans
 	surf
 	hash_t
@@ -36,7 +36,7 @@ SRC_HOG[] =
 	hog
 	dnn_hog
 
-.PHONY: clean static dnn_surf dnn_dbh dnn_sim dnn_ccv dnn_resize dnn_hog
+.PHONY: clean dnn_surf dnn_dbh dnn_sim dnn_ccv dnn_resize dnn_hog
 
 dnn_surf: $(CXXProgram dnn_surf, $(SRC_SURF))
 dnn_ccv: $(CXXProgram dnn_ccv, $(SRC_CCV))
@@ -48,4 +48,4 @@ dnn_resize: $(CXXProgram dnn_resize, dnn_resize)
 clean:
         rm -f *~ *.a *.o dnn_surf dnn_dbh dnn_sim dnn_ccv dnn_resize dnn_hog
 
-.DEFAULT: static dnn_surf dnn_dbh dnn_sim dnn_ccv dnn_resize dnn_hog
+.DEFAULT: dnn_surf dnn_dbh dnn_sim dnn_ccv dnn_resize dnn_hog

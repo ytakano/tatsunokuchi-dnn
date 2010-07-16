@@ -29,8 +29,8 @@ main(int argc, char *argv[])
                 generic.add_options()
                         ("help,h", "show this help")
                         ("dir,d", po::value<std::string>(),
-                         "directory to save histgram files.\n"
-                         "histgram files are saved to same directory of original files if ommited");
+                         "directory to save histogram files.\n"
+                         "histogram files are saved to same directory of original files if ommited");
 
                 po::options_description cmdline_options;
                 cmdline_options.add(generic);

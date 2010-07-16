@@ -72,19 +72,19 @@ dist(float *v1, float *v2, uint32_t len)
 }
 
 std::ostream&
-operator<< (std::ostream &out, const histgram &hist)
+operator<< (std::ostream &out, const hist &hs)
 {
         out.write(head, strlen(head));
-        out.write((char*)&hist.m_dim, sizeof(hist.m_dim));
+        out.write((char*)&hs.m_dim, sizeof(hs.m_dim));
 
-        for (uint32_t i = 0; i < hist.m_dim; i++)
-                out.write((char*)&hist.m_hist[i], sizeof(hist.m_hist[0]));
+        for (uint32_t i = 0; i < hs.m_dim; i++)
+                out.write((char*)&hs.m_hist[i], sizeof(hs.m_hist[0]));
 
         return out;
 }
 
 std::istream&
-operator>> (std::istream &in, histgram &hist)
+operator>> (std::istream &in, hist &hs)
 {
         std::string h;
         size_t len = strlen(head);
@@ -99,18 +99,18 @@ operator>> (std::istream &in, histgram &hist)
         if (i < len || ! in)
                 throw error_read_hist();
 
-        in.read((char*)&hist.m_dim, sizeof(hist.m_dim));
+        in.read((char*)&hs.m_dim, sizeof(hs.m_dim));
 
-        hist.m_hist = histgram::float_arr(new float[hist.m_dim]);
+        hs.m_hist = hist::float_arr(new float[hs.m_dim]);
 
         uint32_t j;
-        for (j = 0; j < hist.m_dim && in; j++) {
+        for (j = 0; j < hs.m_dim && in; j++) {
                 float val;
                 in.read((char*)&val, sizeof(val));
-                hist.m_hist[j] = val;
+                hs.m_hist[j] = val;
         }
 
-        if (j < hist.m_dim)
+        if (j < hs.m_dim)
                 throw error_read_hist();
 
         return in;

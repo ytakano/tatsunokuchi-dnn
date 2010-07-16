@@ -59,7 +59,7 @@ lshforest::init(uint32_t num_tree)
 
 void
 lshforest::get_similar(std::vector<std::string> &str, hash_t &hash,
-                       histgram &hist)
+                       hist &hs)
 {
         if (hash.m_num != m_num_tree)
                 return;
@@ -102,10 +102,10 @@ lshforest::get_similar(std::vector<std::string> &str, hash_t &hash,
                 std::ifstream ifs(info.m_hist_file.c_str());
 
                 if (ifs) {
-                        histgram hist2;
+                        hist hs2;
                         try {
-                                ifs >> hist2;
-                                dist.m_dist = hist2 - hist;
+                                ifs >> hs2;
+                                dist.m_dist = hs2 - hs;
                         } catch (...) {
                                 dist.m_dist = 1.0f;
                         }
@@ -159,7 +159,7 @@ lshforest::remove_hash(std::string str)
 }
 
 bool
-lshforest::add_hash(std::string str, std::string hist, hash_t &hash)
+lshforest::add_hash(std::string str, std::string histfile, hash_t &hash)
 {
         if (hash.m_num != m_num_tree)
                 return false;
@@ -188,7 +188,7 @@ lshforest::add_hash(std::string str, std::string hist, hash_t &hash)
         str_info info;
 
         info.m_hash      = hash.m_hash;
-        info.m_hist_file = hist;
+        info.m_hist_file = histfile;
 
         m_str2hash[str] = info;
 

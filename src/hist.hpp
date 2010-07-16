@@ -12,12 +12,12 @@ namespace dnn {
 float dist(float *v1, float *v2, uint32_t len);
 
 
-struct histgram {
+struct hist {
         typedef boost::shared_array<float> float_arr;
         float_arr       m_hist;
         uint32_t        m_dim;
 
-        float operator- (const histgram &rhs) const
+        float operator- (const hist &rhs) const
         {
                 if (m_dim != rhs.m_dim)
                         return 0.0f;
@@ -28,8 +28,8 @@ struct histgram {
 
 class error_read_hist { };
 
-std::ostream& operator<< (std::ostream &out, const histgram &hist);
-std::istream& operator>> (std::istream &in, histgram &hist);
+std::ostream& operator<< (std::ostream &out, const hist &hist);
+std::istream& operator>> (std::istream &in, hist &hist);
 
 }
 

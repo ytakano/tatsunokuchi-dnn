@@ -18,10 +18,10 @@ class lshforest {
 public:
 
         void    init(uint32_t num_tree);
-        bool    add_hash(std::string str, std::string hist, hash_t &hash);
+        bool    add_hash(std::string str, std::string histfile, hash_t &hash);
         void    remove_hash(std::string str);
         void    get_similar(std::vector<std::string> &str, hash_t &hash,
-                            histgram &hist);
+                            hist &hs);
         void    set_threshold(float threshold) { m_threshold = threshold; }
 
         uint32_t          get_num_tree() { return m_num_tree; }

@@ -95,7 +95,7 @@ main(int argc, char *argv[])
                 case SIM_ADD_HASH:
                         str2 = line;
                         state = SIM_ADD_HIST;
-                        std::cout << "input the histgram file" << std::endl;
+                        std::cout << "input the histogram file" << std::endl;
                         break;
                 case SIM_ADD_HIST:
                         add_hash(str1, str2, line);
@@ -109,7 +109,7 @@ main(int argc, char *argv[])
                 case SIM_GET_HASH:
                         str1  = line;
                         state = SIM_GET_FEAT;
-                        std::cout << "input the histgram file" << std::endl;
+                        std::cout << "input the histogram file" << std::endl;
                         break;
                 case SIM_GET_FEAT:
                         get_similar(str1, line);
@@ -181,7 +181,7 @@ get_similar(std::string hashfile, std::string histfile)
         std::ifstream ifhash(hashfile.c_str());
         std::ifstream ifhist(histfile.c_str());
         dnn::hash_t   hash;
-        dnn::histgram hist;
+        dnn::hist     hs;
 
         if (! ifhash || ! ifhist) {
                 std::cout << "." << std::endl;
@@ -196,7 +196,7 @@ get_similar(std::string hashfile, std::string histfile)
         }
 
         try {
-                ifhist >> hist;
+                ifhist >> hs;
         } catch (...) {
                 std::cout << "." << std::endl;
                 return;
@@ -204,7 +204,7 @@ get_similar(std::string hashfile, std::string histfile)
 
         std::vector<std::string> strset;
 
-        forest.get_similar(strset, hash, hist);
+        forest.get_similar(strset, hash, hs);
 
         BOOST_FOREACH(std::string s, strset) {
                 std::cout << s << std::endl;

@@ -26,8 +26,8 @@ public:
         void    set_dim(int dim) { m_dim = dim; }
         void    set_depth(int depth) { m_depth = depth; }
 
-        void            build_tree();
-        histgram        get_hist(features_t features);
+        void    build_tree();
+        hist    get_hist(features_t features);
 
         friend std::ostream& operator<< (std::ostream &out, const kmeans &km);
         friend std::istream& operator>> (std::istream &in, kmeans &km);

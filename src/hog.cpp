@@ -32,22 +32,22 @@ static const int TOTAL_DIM = BLOCK_DIM * BLOCK_WIDTH * BLOCK_HEIGHT; //HoG全体
 
 void get_hog_g(IplImage* src, float* feat);
 
-histgram
+hist
 get_hog_feat(const char *file)
 {
         IplImage* img = cvLoadImage(file, 0);
 
         if (img == NULL)
-                return histgram();
+                return hist();
 
-        histgram hist;
+        hist hs;
 
-        hist.m_dim  = TOTAL_DIM;
-        hist.m_hist = histgram::float_arr(new float[TOTAL_DIM]);
+        hs.m_dim  = TOTAL_DIM;
+        hs.m_hist = hist::float_arr(new float[TOTAL_DIM]);
 
-        get_hog_g(img, hist.m_hist.get());
+        get_hog_g(img, hs.m_hist.get());
 
-        return hist;
+        return hs;
 }
 
 
