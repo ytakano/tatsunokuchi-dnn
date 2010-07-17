@@ -222,7 +222,7 @@ ccv(const cv::Mat &src, feature_ccv &ret)
                                         if (label_min < same[i]) {
                                                 it2 = labels.find(same[i]);
 
-                                                int count = it1->second.m_count;
+                                                int count = it2->second.m_count;
 
                                                 it2->second.m_alias = label_min;
                                                 it2->second.m_count = 0;

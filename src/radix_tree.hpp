@@ -303,6 +303,9 @@ radix_tree<K, T>::greedy_match(const K &key, std::vector<iterator> &vec)
 
         node = find_node(key, m_root, 0);
 
+        if (node->m_is_leaf)
+                node = node->m_parent;
+
         greedy_match(node, vec);
 
         if (node->m_parent == NULL)
@@ -316,8 +319,10 @@ void
 radix_tree<K, T>::greedy_match(radix_tree_node<K, T> *node,
                                std::vector<iterator> &vec)
 {
-        if (node->m_is_leaf)
+        if (node->m_is_leaf) {
                 vec.push_back(iterator(node));
+                return;
+        }
 
         typename std::map<K, radix_tree_node<K, T>*>::iterator it;
 

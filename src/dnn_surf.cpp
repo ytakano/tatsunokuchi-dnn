@@ -198,10 +198,6 @@ create_hist(dnn::kmeans &km, const std::string &file, const char *dir)
         ofile.close();
 
         std::cout << path.string() << std::endl;
-
-        for (int i = 0; i < hs.m_dim; i++) {
-                std::cout << i << ": " << hs.m_hist[i] << std::endl;
-        }
 }
 
 bool

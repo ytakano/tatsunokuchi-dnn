@@ -202,12 +202,13 @@ get_similar(std::string hashfile, std::string histfile)
                 return;
         }
 
-        std::vector<std::string> strset;
+        dnn::lshforest::vec_objs objs;
 
-        forest.get_similar(strset, hash, hs);
+        forest.get_similar(objs, hash, hs);
 
-        BOOST_FOREACH(std::string s, strset) {
-                std::cout << s << std::endl;
+        BOOST_FOREACH(const dnn::lshforest::sim_obj &obj, objs) {
+                std::cout << obj.m_str << std::endl;
+                std::cout << obj.m_dist << std::endl;
 
                 while (std::cin) {
                         std::string line;

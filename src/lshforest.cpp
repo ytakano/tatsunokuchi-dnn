@@ -58,7 +58,7 @@ lshforest::init(uint32_t num_tree)
 }
 
 void
-lshforest::get_similar(std::vector<std::string> &str, hash_t &hash,
+lshforest::get_similar(vec_objs &result, hash_t &hash,
                        hist &hs)
 {
         if (hash.m_num != m_num_tree)
@@ -88,17 +88,9 @@ lshforest::get_similar(std::vector<std::string> &str, hash_t &hash,
                 }
         }
 
-        std::vector<str_dist> dists;
-
         for (it_t it = str_set.begin(); it != str_set.end(); ++it) {
-                str_info info = m_str2hash[it->first];
-
-/*
-                if (it->second < m_num_tree / 2)
-                        continue;
-*/
-
-                str_dist dist;
+                sim_info info = m_str2hash[it->first];
+                sim_obj  dist;
                 std::ifstream ifs(info.m_hist_file.c_str());
 
                 if (ifs) {
@@ -118,14 +110,10 @@ lshforest::get_similar(std::vector<std::string> &str, hash_t &hash,
 
                 dist.m_str = it->first;
 
-                dists.push_back(dist);
+                result.push_back(dist);
         }
 
-        std::sort(dists.begin(), dists.end());
-
-        BOOST_FOREACH(const str_dist &ref, dists) {
-                str.push_back(ref.m_str);
-        }
+        std::sort(result.begin(), result.end());
 }
 
 void
@@ -185,7 +173,7 @@ lshforest::add_hash(std::string str, std::string histfile, hash_t &hash)
                 }
         }
 
-        str_info info;
+        sim_info info;
 
         info.m_hash      = hash.m_hash;
         info.m_hist_file = histfile;

@@ -16,11 +16,23 @@ namespace dnn {
 
 class lshforest {
 public:
+        class sim_obj {
+        public:
+                std::string m_str;
+                float       m_dist;
+
+                bool operator< (const sim_obj &rhs) const
+                {
+                        return m_dist < rhs.m_dist;
+                }
+        };
+
+        typedef std::vector<sim_obj> vec_objs;
 
         void    init(uint32_t num_tree);
         bool    add_hash(std::string str, std::string histfile, hash_t &hash);
         void    remove_hash(std::string str);
-        void    get_similar(std::vector<std::string> &str, hash_t &hash,
+        void    get_similar(vec_objs &result, hash_t &hash,
                             hist &hs);
         void    set_threshold(float threshold) { m_threshold = threshold; }
 
@@ -62,20 +74,9 @@ private:
                 }
         };
 
-        struct str_info {
+        struct sim_info {
                 boost::shared_array<uint32_t> m_hash;
                 std::string m_hist_file;
-        };
-
-        class str_dist {
-        public:
-                std::string m_str;
-                float       m_dist;
-
-                bool operator< (const str_dist &rhs) const
-                {
-                        return m_dist < rhs.m_dist;
-                }
         };
 
         friend hash_val radix_substr(const lshforest::hash_val &entry,
@@ -87,7 +88,7 @@ private:
         typedef boost::shared_ptr<std::set<std::string> > str_set;
         typedef radix_tree<hash_val, str_set> tree_t;
         typedef boost::shared_array<tree_t>   forest_t;
-        typedef boost::unordered_map<std::string, str_info> hash_arr;
+        typedef boost::unordered_map<std::string, sim_info> hash_arr;
 
 public:
         forest_t        m_forest;

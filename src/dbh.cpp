@@ -263,9 +263,9 @@ dbh::get_hash(hash_t &hash, float_arr hist)
                         pivot pv = m_pivot[i * m_bits + j];
                         float d  = get_dist(hist, pv.m_x1, pv.m_x2);
 
+                        h <<= 1;
                         if (d < pv.m_median) {
-                                h <<= 1;
-                                h  |= 1;
+                                h |= 1;
                         }
                 }
 
